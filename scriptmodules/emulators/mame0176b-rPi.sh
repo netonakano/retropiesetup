@@ -68,6 +68,7 @@ function configure_mame0176b-rPi() {
         iniSet "snapshot_directory" "$md_conf_root/$system/snap"
         iniSet "diff_directory" "$md_conf_root/$system/diff"
         iniSet "comment_directory" "$md_conf_root/$system/comments"
+        iniSet "skip_gameinfo" "1"
 
         #iniSet "hi_directory" "$md_conf_root/$system/hi"
         #iniSet "memcard_directory" "$md_conf_root/$system/memcard"
