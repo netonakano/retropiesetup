@@ -35,12 +35,12 @@ function install_bin_mame0176b-rPi() {
     find "$md_inst" -type d -exec chmod a+rx {} \;
 }
 
-function remove_mame0176b-rPi() {
+#function remove_mame0176b-rPi() {
     # Optionally you can remove configureation directories here
     #local system="mame-mame0176b-rPi"
     #rm -rf "$md_conf_root/$system/"
     #rm /home/pi/.mame
-}
+#}
 
 function configure_mame0176b-rPi() {
     local system="mame-mame0176b-rPi"
