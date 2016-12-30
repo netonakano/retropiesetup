@@ -35,12 +35,12 @@ function install_bin_mame0176b-rPi() {
     find "$md_inst" -type d -exec chmod a+rx {} \;
 }
 
-function remove_mame0176b-rPi() {
+#function remove_mame0176b-rPi() {
     # Optionally you can remove configureation directories here
     #local system="mame-mame0176b-rPi"
     #rm -rf "$md_conf_root/$system/"
     #rm /home/pi/.mame
-}
+#}
 
 function configure_mame0176b-rPi() {
     local system="mame-mame0176b-rPi"
@@ -68,6 +68,7 @@ function configure_mame0176b-rPi() {
         iniSet "snapshot_directory" "$md_conf_root/$system/snap"
         iniSet "diff_directory" "$md_conf_root/$system/diff"
         iniSet "comment_directory" "$md_conf_root/$system/comments"
+        iniSet "skip_gameinfo" "1"
 
         #iniSet "hi_directory" "$md_conf_root/$system/hi"
         #iniSet "memcard_directory" "$md_conf_root/$system/memcard"
