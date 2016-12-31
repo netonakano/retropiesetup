@@ -23,7 +23,7 @@ function install_bin_mame0176b-rPi() {
     local mame="mame0176b-rPi"
 
     # Download and unzip the binary file 
-    wget "http://choccyhobnob.com/?d=1150" -O "$md_inst/$mame.zip"
+    wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
     unzip -n "$md_inst/$mame.zip" -d "$md_inst"
     rm "$md_inst/$mame.zip"
     
@@ -69,10 +69,6 @@ function configure_mame0176b-rPi() {
         iniSet "diff_directory" "$md_conf_root/$system/diff"
         iniSet "comment_directory" "$md_conf_root/$system/comments"
         iniSet "skip_gameinfo" "1"
-
-        #iniSet "hi_directory" "$md_conf_root/$system/hi"
-        #iniSet "memcard_directory" "$md_conf_root/$system/memcard"
-
         iniSet "artpath" "$romdir/$system/artwork"
         iniSet "samplepath" "$romdir/$system/samples;$romdir/arcade/samples"
         iniSet "rompath" "$romdir/$system;$romdir/arcade"
