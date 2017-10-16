@@ -12,11 +12,12 @@
 rp_module_id="basilisk"
 rp_module_desc="Macintosh emulator"
 rp_module_help="ROM Extensions: .img .rom\n\nCopy your Macintosh roms mac.rom and disk.img to $romdir/macintosh"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/cebix/macemu/master/BasiliskII/COPYING"
 rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
 function depends_basilisk() {
-    local depends=(libsdl1.2-dev autoconf automake)
+    local depends=(libsdl1.2-dev autoconf automake oss-compat)
     isPlatform "x11" && depends+=(libgtk2.0-dev)
     getDepends "${depends[@]}"
 }
@@ -47,5 +48,6 @@ function configure_basilisk() {
 
     mkUserDir "$md_conf_root/macintosh"
 
-    addSystem 1 "$md_id" "macintosh" "$md_inst/bin/BasiliskII --rom $romdir/macintosh/mac.rom --disk $romdir/macintosh/disk.img --extfs $romdir/macintosh --config $md_conf_root/macintosh/basiliskii.cfg" "Apple Macintosh" ".txt"
+    addEmulator 1 "$md_id" "macintosh" "$md_inst/bin/BasiliskII --rom $romdir/macintosh/mac.rom --disk $romdir/macintosh/disk.img --extfs $romdir/macintosh --config $md_conf_root/macintosh/basiliskii.cfg"
+    addSystem "macintosh"
 }

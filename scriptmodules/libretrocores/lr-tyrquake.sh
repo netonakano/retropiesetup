@@ -11,11 +11,8 @@
 
 rp_module_id="lr-tyrquake"
 rp_module_desc="Quake 1 engine - Tyrquake port for libretro"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/libretro/tyrquake/master/gnu.txt"
 rp_module_section="opt"
-
-function depends_lr-tyrquake() {
-    getDepends lhasa
-}
 
 function sources_lr-tyrquake() {
     gitPullOrClone "$md_build" https://github.com/libretro/tyrquake.git
@@ -37,12 +34,11 @@ function install_lr-tyrquake() {
 }
 
 function game_data_lr-tyrquake() {
+    getDepends lhasa
     if [[ ! -f "$romdir/ports/quake/id1/pak0.pak" ]]; then
         cd "$__tmpdir"
         # download / unpack / install quake shareware files
-        wget "$__archive_url/quake106.zip" -O quake106.zip
-        unzip -o quake106.zip -d "quake106"
-        rm quake106.zip
+        downloadAndExtract "$__archive_url/quake106.zip" "$__tmpdir/quake106"
         pushd quake106
         lhasa ef resource.1
         cp -rf id1 "$romdir/ports/quake/"
@@ -57,8 +53,9 @@ function _add_games_lr-tyrquake() {
     local cmd="$1"
     declare -A games=(
         ['id1']="Quake"
-        ['id1/hipnotic']="Quake Mission Pack 1 (hipnotic)"
-        ['id1/rogue']="Quake Mission Pack 2 (rogue)"
+        ['hipnotic']="Quake Mission Pack 1 (hipnotic)"
+        ['rogue']="Quake Mission Pack 2 (rogue)"
+        ['dopa']="Quake Episode 5 (dopa)"
     )
     local dir
     local pak
@@ -66,14 +63,12 @@ function _add_games_lr-tyrquake() {
         pak="$romdir/ports/quake/$dir/pak0.pak"
         if [[ -f "$pak" ]]; then
             addPort "$md_id" "quake" "${games[$dir]}" "$cmd" "$pak"
-        else
-            rm -f "$romdir/ports/quake/${games[$dir]}.sh"
         fi
     done
 }
 
 function add_games_lr-tyrquake() {
-    _add_games_lr-tyrquake "$emudir/retroarch/bin/retroarch -L $md_inst/tyrquake_libretro.so --config $md_conf_root/quake/retroarch.cfg %ROM%"
+    _add_games_lr-tyrquake "$md_inst/tyrquake_libretro.so"
 }
 
 function configure_lr-tyrquake() {

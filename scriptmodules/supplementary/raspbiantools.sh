@@ -21,7 +21,7 @@ function apt_upgrade_raspbiantools() {
 
 function lxde_raspbiantools() {
     aptInstall --no-install-recommends lxde
-    aptInstall xorg raspberrypi-ui-mods rpi-chromium-mods
+    aptInstall xorg raspberrypi-ui-mods rpi-chromium-mods gvfs
     setConfigRoot "ports"
     addPort "lxde" "lxde" "Desktop" "startx"
     enable_autostart
@@ -66,7 +66,7 @@ function gui_raspbiantools() {
         )
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
-            case $choice in
+            case "$choice" in
                 1)
                     rp_callModule "$md_id" apt_upgrade
                     ;;

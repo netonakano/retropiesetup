@@ -20,6 +20,7 @@ RSP_PLUGIN="$4"
 rootdir="/opt/retropie"
 configdir="$rootdir/configs"
 config="$configdir/n64/mupen64plus.cfg"
+inputconfig="$configdir/n64/InputAutoCfg.ini"
 datadir="$HOME/RetroPie"
 romdir="$datadir/roms"
 
@@ -113,7 +114,7 @@ function remap() {
         bind=""
         for device_num in "${!devices[@]}"; do
             # get name of retroarch auto config file
-            file=$(grep --exclude=*.bak -rl "$configdir/all/retroarch-joypads/" -e "\"${devices[$device_num]}\"")
+            file=$(grep -lF "\"${devices[$device_num]}\"" "$configdir/all/retroarch-joypads/"*.cfg)
             atebitdo_hack=0
             [[ "$file" == *8Bitdo* ]] && getAutoConf "8bitdo_hack" && atebitdo_hack=1
             if [[ -f "$file" ]]; then
@@ -130,7 +131,7 @@ function remap() {
 }
 
 function setAudio() {
-    if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == *BCM27* ]]; then
+    if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == *BCM* ]]; then
         # If a raspberry pi is used try to set the right output and use audio omx if possible
         local audio_device=$(amixer)
         if [[ "$audio_device" == *PCM* ]]; then
@@ -169,13 +170,16 @@ function testCompatibility() {
     # fallback for glesn64 and rice plugin
     # some roms lead to a black screen of death
     local game
+    
+    # these games need RSP-LLE
     local blacklist=(
-        resident
         gauntlet
-        rogue
-        squadron
+        naboo
+        body
+        infernal
     )
 
+    # these games do not run with gles2n64
     local glesn64_blacklist=(
         zelda
         paper
@@ -183,43 +187,48 @@ function testCompatibility() {
         tooie
         instinct
         beetle
+        rogue
+        squadron
     )
 
+    # these games do not run with rice
     local glesn64rice_blacklist=(
         yoshi
+        rogue
+        squadron
     )
 
-    local GLideN64FBEMU_whitelist=(
-        ocarina
-        empire
-        pokemon
-        rayman
-        donald
-        diddy
-        beetle
-        tennis
-        golf
-        instinct
-        gemini
-        majora
-        1080
-        quake
-        ridge
-    )
-
+    # these games have massive glitches if legacy blending is enabled
     local GLideN64LegacyBlending_blacklist=(
         empire
         beetle
         donkey
+        zelda
+        bomberman
     )
 
     local GLideN64NativeResolution_blacklist=(
         majora
     )
 
+    # these games crash if audio-omx is selected
+    local AudioOMX_blacklist=(
+        pokemon
+        resident
+        starcraft
+        rogue
+        squadron
+    )
+
     for game in "${blacklist[@]}"; do
         if [[ "${ROM,,}" == *"$game"* ]]; then
             exit
+        fi
+    done
+
+    for game in "${AudioOMX_blacklist[@]}"; do
+        if [[ "${ROM,,}" == *"$game"* ]]; then
+            AUDIO_PLUGIN="mupen64plus-audio-sdl"
         fi
     done
 
@@ -230,15 +239,19 @@ function testCompatibility() {
             fi
             iniConfig " = " "" "$config"
             # Settings version. Don't touch it.
-            iniSet "configVersion" "16"
+            local config_version="17"
+            if [[ -f "$configdir/n64/GLideN64_config_version.ini" ]]; then
+                config_version=$(<"$configdir/n64/GLideN64_config_version.ini")
+            fi
+            iniSet "configVersion" "$config_version"
+            # Size of texture cache in megabytes. Good value is VRAM*3/4
+            iniSet "CacheSize" "50"
+            # Enable FPS Counter. Fixes zelda depth issue
+            iniSet "ShowFPS " "True"
+            iniSet "fontSize" "14"
+            iniSet "fontColor" "1F1F1F"
             # Enable FBEmulation if necessary
-            iniSet "EnableFBEmulation" "False"
-            for game in "${GLideN64FBEMU_whitelist[@]}"; do
-                if [[ "${ROM,,}" == *"$game"* ]]; then
-                    iniSet "EnableFBEmulation" "True"
-                    break
-                fi
-            done
+            iniSet "EnableFBEmulation" "True"
             # Set native resolution factor of 1
             iniSet "UseNativeResolutionFactor" "1"
             for game in "${GLideN64NativeResolution_blacklist[@]}"; do
@@ -271,22 +284,140 @@ function testCompatibility() {
     esac
 }
 
+function useTexturePacks() {
+    # video-GLideN64
+    if ! grep -q "\[Video-GLideN64\]" "$config"; then
+        echo "[Video-GLideN64]" >> "$config"
+    fi
+    iniConfig " = " "" "$config"
+    # Settings version. Don't touch it.
+    local config_version="17"
+    if [[ -f "$configdir/n64/GLideN64_config_version.ini" ]]; then
+        config_version=$(<"$configdir/n64/GLideN64_config_version.ini")
+    fi
+    iniSet "configVersion" "$config_version"
+    iniSet "txHiresEnable" "True"
+
+    # video-rice
+    if ! grep -q "\[Video-Rice\]" "$config"; then
+        echo "[Video-Rice]" >> "$config"
+    fi
+    iniSet "LoadHiResTextures" "True"
+}
+
+function autoset() {
+    VIDEO_PLUGIN="mupen64plus-video-GLideN64"
+    RES="--resolution 320x240"
+
+    local game
+    # these games run fine and look better with 640x480
+    local highres=(
+        yoshi
+        worms
+        party
+        pokemon
+        bomberman
+        harvest
+        diddy
+        1080
+        starcraft
+        wipeout
+        darkness
+    )
+
+    for game in "${highres[@]}"; do
+        if [[ "${ROM,,}" == *"$game"* ]]; then
+            RES="--resolution 640x480"
+            break
+        fi
+    done
+
+    # these games have no glitches and run faster with gles2n64
+    local gles2n64=(
+        wave
+        kart
+    )
+
+    for game in "${gles2n64[@]}"; do
+        if [[ "${ROM,,}" == *"$game"* ]]; then
+            VIDEO_PLUGIN="mupen64plus-video-n64"
+            break
+        fi
+    done
+
+    # these games have no glitches or run faster with rice
+    local gles2rice=(
+        diddy
+        1080
+        conker
+        tooie
+        darkness
+    )
+
+    for game in "${gles2rice[@]}"; do
+        if [[ "${ROM,,}" == *"$game"* ]]; then
+            VIDEO_PLUGIN="mupen64plus-video-rice"
+            break
+        fi
+    done
+}
+
 if ! grep -q "\[Core\]" "$config"; then
     echo "[Core]" >> "$config"
     echo "Version = 1.010000" >> "$config"
 fi
 iniConfig " = " "\"" "$config"
-iniSet "ScreenshotPath" "$romdir/n64"
-iniSet "SaveStatePath" "$romdir/n64"
-iniSet "SaveSRAMPath" "$romdir/n64"
 
+function setPath() {
+    iniSet "ScreenshotPath" "$romdir/n64"
+    iniSet "SaveStatePath" "$romdir/n64"
+    iniSet "SaveSRAMPath" "$romdir/n64"
+}
+
+
+# add default keyboard configuration if InputAutoCFG.ini is missing
+if [[ ! -f "$inputconfig" ]]; then
+    cat > "$inputconfig" << _EOF_
+; InputAutoCfg.ini for Mupen64Plus SDL Input plugin
+
+; Keyboard_START
+[Keyboard]
+plugged = True
+plugin = 2
+mouse = False
+DPad R = key(100)
+DPad L = key(97)
+DPad D = key(115)
+DPad U = key(119)
+Start = key(13)
+Z Trig = key(122)
+B Button = key(306)
+A Button = key(304)
+C Button R = key(108)
+C Button L = key(106)
+C Button D = key(107)
+C Button U = key(105)
+R Trig = key(99)
+L Trig = key(120)
+Mempak switch = key(44)
+Rumblepak switch = key(46)
+X Axis = key(276,275)
+Y Axis = key(273,274)
+; Keyboard_END
+
+_EOF_
+fi
+
+getAutoConf mupen64plus_savepath && setPath
 getAutoConf mupen64plus_hotkeys && remap
-getAutoConf mupen64plus_compatibility_check && testCompatibility
 getAutoConf mupen64plus_audio && setAudio
+[[ "$VIDEO_PLUGIN" == "AUTO" ]] && autoset
+getAutoConf mupen64plus_compatibility_check && testCompatibility
+getAutoConf mupen64plus_texture_packs && useTexturePacks
 
-if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == *BCM27* ]]; then
+if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == BCM* ]]; then
     # If a raspberry pi is used lower resolution to 320x240 and enable SDL dispmanx scaling mode 1
     SDL_VIDEO_RPI_SCALE_MODE=1 "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --windowed $RES --rsp ${RSP_PLUGIN}.so --gfx ${VIDEO_PLUGIN}.so --audio ${AUDIO_PLUGIN}.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
 else
-    "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --fullscreen --rsp ${RSP_PLUGIN}.so --gfx ${VIDEO_PLUGIN}.so --audio mupen64plus-audio-sdl.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
+    SDL_AUDIODRIVER=pulse "$rootdir/emulators/mupen64plus/bin/mupen64plus" --noosd --fullscreen --rsp ${RSP_PLUGIN}.so --gfx ${VIDEO_PLUGIN}.so --audio mupen64plus-audio-sdl.so --configdir "$configdir/n64" --datadir "$configdir/n64" "$ROM"
 fi

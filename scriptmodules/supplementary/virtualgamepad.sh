@@ -11,7 +11,9 @@
 
 rp_module_id="virtualgamepad"
 rp_module_desc="Virtual Gamepad for Smartphone"
+rp_module_licence="MIT https://raw.githubusercontent.com/miroof/node-virtual-gamepads/master/LICENSE"
 rp_module_section="exp"
+rp_module_flags="noinstclean"
 
 function depends_virtualgamepad() {
     getDepends nodejs
@@ -51,6 +53,7 @@ function install_virtualgamepad() {
     npm install pm2 -g --unsafe-perm
     cd "$md_inst"
     sudo -u $user npm install
+    sudo -u $user npm install ref
 }
 
 function configure_virtualgamepad() {

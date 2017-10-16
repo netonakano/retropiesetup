@@ -10,12 +10,9 @@
 #
 
 function onstart_mupen64plus_joystick() {
-    local device_type="$1"
-    local device_name="$2"
-
     # write temp file header
-    echo "; ${device_name}_START " > /tmp/mp64tempconfig.cfg
-    echo "[${device_name}]" >> /tmp/mp64tempconfig.cfg
+    echo "; ${DEVICE_NAME}_START " > /tmp/mp64tempconfig.cfg
+    echo "[${DEVICE_NAME}]" >> /tmp/mp64tempconfig.cfg
     iniConfig " = " "" "/tmp/mp64tempconfig.cfg"
     iniSet "plugged" "True"
     iniSet "plugin" "2"
@@ -27,12 +24,10 @@ function onstart_mupen64plus_joystick() {
 }
 
 function map_mupen64plus_joystick() {
-    local device_type="$1"
-    local device_name="$2"
-    local input_name="$3"
-    local input_type="$4"
-    local input_id="$5"
-    local input_value="$6"
+    local input_name="$1"
+    local input_type="$2"
+    local input_id="$3"
+    local input_value="$4"
 
     local keys
     local dir
@@ -66,13 +61,13 @@ function map_mupen64plus_joystick() {
             keys=("C Button U")
             ;;
         leftbottom|leftshoulder)
-            keys=("Z Trig")
+            keys=("L Trig")
             ;;
         rightbottom|rightshoulder)
             keys=("R Trig")
             ;;
         lefttop|lefttrigger)
-            keys=("L Trig")
+            keys=("Z Trig")
             ;;
         start)
             keys=("Start")
@@ -187,9 +182,6 @@ function map_mupen64plus_joystick() {
 }
 
 function onend_mupen64plus_joystick() {
-    local device_type="$1"
-    local device_name="$2"
-
     local bind
     local axis
     local axis_neg
@@ -220,7 +212,16 @@ function onend_mupen64plus_joystick() {
         fi
     done
 
-    echo "; ${device_name}_END " >> /tmp/mp64tempconfig.cfg
+    # If there is no Z Trig try to map the L shoulder
+    # button to it via copying over the existing L Trig
+    # value and deleting it (L Trig) after
+    if ! grep -q "Z Trig" /tmp/mp64tempconfig.cfg ; then
+        iniGet "L Trig"
+        iniSet "Z Trig" "${ini_value}"
+        iniDel "L Trig"
+    fi
+
+    echo "; ${DEVICE_NAME}_END " >> /tmp/mp64tempconfig.cfg
     echo "" >> /tmp/mp64tempconfig.cfg
 
     # abort if old device config cannot be deleted.
@@ -229,8 +230,8 @@ function onend_mupen64plus_joystick() {
     if [[ -f "$file" ]]; then
         # backup current config file
         cp "$file" "${file}.bak"
-        sed -i /"${device_name}_START"/,/"${device_name}_END"/d "$file"
-        if grep -q "$device_name" "$file" ; then
+        sed -i /"${DEVICE_NAME}_START"/,/"${DEVICE_NAME}_END"/d "$file"
+        if grep -q "$DEVICE_NAME" "$file" ; then
             rm /tmp/mp64tempconfig.cfg
             return
         fi

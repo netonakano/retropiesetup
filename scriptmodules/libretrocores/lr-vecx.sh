@@ -12,6 +12,7 @@
 rp_module_id="lr-vecx"
 rp_module_desc="Vectrex emulator - vecx port for libretro"
 rp_module_help="ROM Extensions: .vec .gam .bin .zip\n\nCopy your Vectrex roms to $romdir/vectrex"
+rp_module_licence="GPL3 https://raw.githubusercontent.com/libretro/libretro-vecx/master/LICENSE.md"
 rp_module_section="main"
 
 function sources_lr-vecx() {
@@ -37,9 +38,14 @@ function configure_lr-vecx() {
     mkRomDir "vectrex"
     ensureSystemretroconfig "vectrex"
 
-    # Copy bios files
-    cp -v "$md_inst/"{fast.bin,skip.bin,system.bin} "$biosdir/"
-    chown $user:$user "$biosdir/"{fast.bin,skip.bin,system.bin}
+    if [[ "$md_mode" == "install" ]]; then
+        # Copy bios files
+        cp -v "$md_inst/"{fast.bin,skip.bin,system.bin} "$biosdir/"
+        chown $user:$user "$biosdir/"{fast.bin,skip.bin,system.bin}
+    else
+        rm -f "$biosdir/"{fast.bin,skip.bin,system.bin}
+    fi
 
-    addSystem 1 "$md_id" "vectrex" "$md_inst/vecx_libretro.so"
+    addEmulator 1 "$md_id" "vectrex" "$md_inst/vecx_libretro.so"
+    addSystem "vectrex"
 }

@@ -12,6 +12,7 @@
 rp_module_id="pisnes"
 rp_module_desc="SNES emulator PiSNES"
 rp_module_help="ROM Extensions: .bin .smc .sfc .fig .swc .mgd .zip\n\nCopy your SNES roms to $romdir/snes"
+rp_module_licence="NONCOM https://raw.githubusercontent.com/RetroPie/pisnes/master/snes9x.h"
 rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
@@ -51,5 +52,6 @@ function configure_pisnes() {
 
     copyDefaultConfig "$md_inst/snes9x.cfg.template" "$md_conf_root/snes/snes9x.cfg"
 
-    addSystem 0 "$md_id" "snes" "$md_inst/snes9x %ROM%"
+    addEmulator 0 "$md_id" "snes" "$md_inst/snes9x %ROM%"
+    addSystem "snes"
 }

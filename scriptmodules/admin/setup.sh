@@ -29,7 +29,9 @@ function rps_logInit() {
 }
 
 function rps_logStart() {
-    echo "Log started at: $(date -d @$time_start)"
+    echo -e "Log started at: $(date -d @$time_start)\n"
+    echo "RetroPie-Setup version: $__version ($(git -C "$scriptdir" log -1 --pretty=format:%h))"
+    echo "System: $(uname -a)"
 }
 
 function rps_logEnd() {
@@ -61,8 +63,20 @@ function depends_setup() {
         joy2keyStop
         exec "$scriptdir/retropie_packages.sh" setup post_update gui_setup
     fi
-    if isPlatform "rpi" && [[ -f /boot/config.txt ]] && grep -q "^dtoverlay=vc4-kms-v3d" /boot/config.txt; then
-        printMsgs "dialog" "You have the experimental desktop GL driver enabled. This is NOT compatible with RetroPie, and Emulation Station as well as emulators will fail to launch. Please disable the experimental desktop GL driver from the raspi-config 'Advanced Options' menu."
+
+    if isPlatform "rpi" && isPlatform "mesa"; then
+        printMsgs "dialog" "ERROR: You have the experimental desktop GL driver enabled. This is NOT compatible with RetroPie, and Emulation Station as well as emulators will fail to launch.\n\nPlease disable the experimental desktop GL driver from the raspi-config 'Advanced Options' menu."
+        exit 1
+    fi
+
+    # make sure user has the correct group permissions
+    if ! isPlatform "x11"; then
+        local group
+        for group in input video; do
+            if ! hasFlag "$(groups $user)" "$group"; then
+                dialog --yesno "Your user '$user' is not a member of the system group '$group'.\n\nThis is needed for RetroPie to function correctly. May I add '$user' to group '$group'?\n\nYou will need to restart for these changes to take effect." 22 76 2>&1 >/dev/tty && usermod -a -G "$group" "$user"
+            fi
+        done
     fi
 
     # remove all but the last 20 logs
@@ -111,7 +125,7 @@ function post_update_setup() {
     } &> >(tee >(gzip --stdout >"$logfilename"))
     rps_printInfo "$logfilename"
 
-    printMsgs "dialog" "NOTICE: The RetroPie-Setup script and pre-made RetroPie SD card images are available to download for free from https://retropie.org.uk.\n\nIt has come to our attention that some people are profiting from selling RetroPie SD cards, some including copyrighted games. This is illegal.\n\nIf you have been sold this software on its own or including games, you can let us know about it by emailing retropieproject@gmail.com"
+    printMsgs "dialog" "NOTICE: The RetroPie-Setup script and pre-made RetroPie SD card images are available to download for free from https://retropie.org.uk.\n\nThe pre-built RetroPie image includes software that has non commercial licences. Selling RetroPie images or including RetroPie with your commercial product is not allowed.\n\nNo copyrighted games are included with RetroPie.\n\nIf you have been sold this software, you can let us know about it by emailing retropieproject@gmail.com."
 
     # return to set return function
     "${return_func[@]}"
@@ -147,6 +161,10 @@ function package_setup() {
                 options+=(C "Configuration / Options")
             fi
             options+=(X "Remove")
+        fi
+
+        if [[ -d "$__builddir/$md_id" ]]; then
+            options+=(Z "Clean source folder")
         fi
 
         local help="${__mod_desc[$idx]}\n\n${__mod_help[$idx]}"
@@ -206,6 +224,10 @@ function package_setup() {
                 ;;
             H)
                 printMsgs "dialog" "$help"
+                ;;
+            Z)
+                rp_callModule "$idx" clean
+                printMsgs "dialog" "$__builddir/$md_id has been removed."
                 ;;
             *)
                 break
@@ -437,14 +459,14 @@ function packages_gui_setup() {
 function uninstall_setup()
 {
     dialog --defaultno --yesno "Are you sure you want to uninstall RetroPie?" 22 76 2>&1 >/dev/tty || return 0
-    dialog --defaultno --yesno "Are you REALLY sure you want to uninstall RetroPie?\n\n$rootdir and $datadir will be removed - this includes your RetroPie configurations and ROMs." 22 76 2>&1 >/dev/tty || return 0
+    dialog --defaultno --yesno "Are you REALLY sure you want to uninstall RetroPie?\n\n$rootdir will be removed - this includes configuration files for all RetroPie components." 22 76 2>&1 >/dev/tty || return 0
     clear
     printHeading "Uninstalling RetroPie"
     for idx in "${__mod_idx[@]}"; do
         rp_isInstalled "$idx" && rp_callModule $idx remove
     done
     rm -rfv "$rootdir"
-    rm -rfv "$datadir"
+    dialog --defaultno --yesno "Do you want to remove all the files from $datadir - this includes all your installed ROMs, BIOS files and custom splashscreens." 22 76 2>&1 >/dev/tty && rm -rfv "$datadir"
     if dialog --defaultno --yesno "Do you want to remove all the system packages that RetroPie depends on? \n\nWARNING: this will remove packages like SDL even if they were installed before you installed RetroPie - it will also remove any package configurations - such as those in /etc/samba for Samba.\n\nIf unsure choose No (selected by default)." 22 76 2>&1 >/dev/tty; then
         clear
         # remove all dependencies
@@ -452,6 +474,7 @@ function uninstall_setup()
             rp_isInstalled "$idx" && rp_callModule "$idx" depends remove
         done
     fi
+    printMsgs "dialog" "RetroPie has been uninstalled."
 }
 
 function reboot_setup()
@@ -463,17 +486,16 @@ function reboot_setup()
 # retropie-setup main menu
 function gui_setup() {
     depends_setup
+    joy2keyStart
     local default
     while true; do
-        pushd "$scriptdir" >/dev/null
-        local commit=$(git log -1 --pretty=format:"%cr (%h)")
-        popd >/dev/null
+        local commit=$(git -C "$scriptdir" log -1 --pretty=format:"%cr (%h)")
 
         cmd=(dialog --backtitle "$__backtitle" --title "RetroPie-Setup Script" --cancel-label "Exit" --item-help --help-button --default-item "$default" --menu "Version: $__version\nLast Commit: $commit" 22 76 16)
         options=(
             I "Basic install" "I This will install all packages from Core and Main which gives a basic RetroPie install. Further packages can then be installed later from the Optional and Experimental sections. If binaries are available they will be used, alternatively packages will be built from source - which will take longer."
 
-            U "Update all installed packages" "U Update all currently installed packages. If binaries are available they will be used, alternatively packages will be built from source - which will take longer."
+            U "Update" "U Updates RetroPie-Setup and all currently installed packages. Will also allow to update OS packages. If binaries are available they will be used, otherwise packages will be built from source."
 
             P "Manage packages"
             "P Install/Remove and Configure the various components of RetroPie, including emulators, ports, and controller drivers."
@@ -535,13 +557,21 @@ function gui_setup() {
                 fi
                 ;;
             X)
-                uninstall_setup
+                local logfilename
+                __ERRMSGS=()
+                __INFMSGS=()
+                rps_logInit
+                {
+                    uninstall_setup
+                } &> >(tee >(gzip --stdout >"$logfilename"))
+                rps_printInfo "$logfilename"
                 ;;
             R)
-                dialog --defaultno --yesno "Are you sure you want to reboot?" 22 76 2>&1 >/dev/tty || continue
+                dialog --defaultno --yesno "Are you sure you want to reboot?\n\nNote that if you reboot when Emulation Station is running, you will lose any metadata changes." 22 76 2>&1 >/dev/tty || continue
                 reboot_setup
                 ;;
         esac
     done
+    joy2keyStop
     clear
 }

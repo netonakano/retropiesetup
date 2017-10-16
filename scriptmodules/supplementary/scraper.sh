@@ -11,18 +11,21 @@
 
 rp_module_id="scraper"
 rp_module_desc="Scraper for EmulationStation by Steven Selph"
-rp_module_section="config"
+rp_module_licence="MIT https://raw.githubusercontent.com/sselph/scraper/master/LICENSE"
+rp_module_section="opt"
 
 function depends_scraper() {
-    getDepends golang
+    rp_callModule golang install_bin
 }
 
 function sources_scraper() {
-    GOPATH="$md_build" go get github.com/sselph/scraper
+    local goroot="$(_get_goroot_golang)"
+    GOPATH="$md_build" GOROOT="$goroot" "$goroot/bin/go" get -u github.com/sselph/scraper
 }
 
 function build_scraper() {
-    GOPATH="$md_build" go build github.com/sselph/scraper
+    local goroot="$(_get_goroot_golang)"
+    GOPATH="$md_build" GOROOT="$goroot" "$goroot/bin/go" build github.com/sselph/scraper
 }
 
 function install_scraper() {
@@ -32,6 +35,10 @@ function install_scraper() {
         'src/github.com/sselph/scraper/README.md'
         'src/github.com/sselph/scraper/hash.csv'
     )
+}
+
+function remove_scraper() {
+    rp_callModule golang remove
 }
 
 function get_ver_scraper() {
@@ -69,6 +76,10 @@ function scrape_scraper() {
     local params=()
     params+=(-image_dir "$img_dir")
     params+=(-image_path "$img_path")
+    params+=(-video_dir "$img_dir")
+    params+=(-video_path "$img_path")
+    params+=(-marquee_dir "$img_dir")
+    params+=(-marquee_path "$img_path")
     params+=(-output_file "$gamelist")
     params+=(-rom_dir "$romdir/$system")
     params+=(-workers "4")
@@ -76,13 +87,31 @@ function scrape_scraper() {
     if [[ "$use_thumbs" -eq 1 ]]; then
         params+=(-thumb_only)
     fi
+    if [[ "$download_videos" -eq 1 ]]; then
+        params+=(-download_videos)
+    fi
+    if [[ "$download_marquees" -eq 1 ]]; then
+        params+=(-download_marquees)
+    fi
     if [[ -n "$max_width" ]]; then
         params+=(-max_width "$max_width")
     fi
-    if [[ "$use_gdb_scraper" -eq 1 ]]; then
-        params+=(-use_gdb)
+    if [[ -n "$max_height" ]]; then
+        params+=(-max_height "$max_height")
+    fi
+    if [[ "$console_src" -eq 0 ]]; then
+        params+=(-console_src="ovgdb")
+    elif [[ "$console_src" -eq 1 ]]; then
+        params+=(-console_src="gdb")
     else
-        params+=(-use_ovgdb)
+        params+=(-console_src="ss")
+    fi
+    if [[ "$mame_src" -eq 0 ]]; then
+        params+=(-mame_src="mamedb")
+    elif [[ "$mame_src" -eq 1 ]]; then
+        params+=(-mame_src="ss")
+    else
+        params+=(-mame_src="adb")
     fi
     if [[ "$rom_name" -eq 1 ]]; then
         params+=(-use_nointro_name=false)
@@ -94,14 +123,18 @@ function scrape_scraper() {
     fi
 
     [[ "$system" =~ ^mame-|arcade|fba|neogeo ]] && params+=(-mame -mame_img t,m,s)
+
+    # trap ctrl+c and return if pressed (rather than exiting retropie-setup etc)
+    trap 'trap 2; return 1' INT
     sudo -u $user "$md_inst/scraper" ${params[@]}
+    trap 2
 }
 
 function scrape_all_scraper() {
     local system
     while read system; do
         system=${system/$romdir\//}
-        scrape_scraper "$system" "$@"
+        scrape_scraper "$system" "$@" || return 1
     done < <(list_systems_scraper)
 }
 
@@ -121,12 +154,12 @@ function scrape_chosen_scraper() {
     fi
 
     local cmd=(dialog --backtitle "$__backtitle" --checklist "Select ROM Folders" 22 76 16)
-    local choices=($("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty))
+    local choice=($("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty))
 
-    [[ ${#choices[@]} -eq 0 ]] && return
+    [[ ${#choice[@]} -eq 0 ]] && return
 
     local choice
-    for choice in "${choices[@]}"; do
+    for choice in "${choice[@]}"; do
         choice=${options[choice*3-2]}
         scrape_scraper "$choice" "$@"
     done
@@ -136,10 +169,14 @@ function _load_config_scraper() {
     echo "$(loadModuleConfig \
         'use_thumbs=1' \
         'max_width=400' \
-        'use_gdb_scraper=1' \
+        'max_height=400' \
+        'console_src=1' \
+        'mame_src=2' \
         'rom_name=0' \
         'append_only=0' \
         'use_rom_folder=0' \
+        'download_videos=0' \
+        'download_marquees=0' \
     )"
 }
 
@@ -147,10 +184,6 @@ function gui_scraper() {
     if pgrep "emulationstatio" >/dev/null; then
         printMsgs "dialog" "This scraper must not be run while Emulation Station is running or the scraped data will be overwritten. \n\nPlease quit from Emulation Station, and run RetroPie-Setup from the terminal"
         return
-    fi
-
-    if [[ ! -d "$md_inst" ]]; then
-        rp_callModule "$md_id"
     fi
 
     iniConfig " = " '"' "$configdir/all/scraper.cfg"
@@ -173,12 +206,20 @@ function gui_scraper() {
             options+=(3 "Thumbnails only (Disabled)")
         fi
 
-        options+=(4 "Max image width ($max_width)")
-
-        if [[ "$use_gdb_scraper" -eq 1 ]]; then
-            options+=(5 "Scraper (thegamesdb)")
+        if [[ "$mame_src" -eq 0 ]]; then
+            options+=(4 "Arcade Source (MameDB)")
+        elif [[ "$mame_src" -eq 1 ]]; then
+            options+=(4 "Arcade Source (ScreenScraper)")
         else
-            options+=(5 "Scraper (OpenVGDB)")
+            options+=(4 "Arcade Source (ArcadeItalia)")
+        fi
+
+        if [[ "$console_src" -eq 0 ]]; then
+            options+=(5 "Console Source (OpenVGDB)")
+        elif [[ "$console_src" -eq 1 ]]; then
+            options+=(5 "Console Source (thegamesdb)")
+        else
+            options+=(5 "Console Source (ScreenScraper)")
         fi
 
         if [[ "$rom_name" -eq 0 ]]; then
@@ -201,31 +242,51 @@ function gui_scraper() {
             options+=(8 "Use rom folder for gamelist & images (Disabled)")
         fi
 
+        if [[ "$download_videos" -eq 1 ]]; then
+            options+=(9 "Download Videos (Enabled)")
+        else
+            options+=(9 "Download Videos (Disabled)")
+        fi
+
+        if [[ "$download_marquees" -eq 1 ]]; then
+            options+=(0 "Download Marquees (Enabled)")
+        else
+            options+=(0 "Download Marquees (Disabled)")
+        fi
+
+        options+=(W "Max image width ($max_width)")
+        options+=(H "Max image height ($max_height)")
+
         options+=(U "Update scraper to the latest version")
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
             default="$choice"
-            case $choice in
+            case "$choice" in
                 1)
-                    rp_callModule "$md_id" scrape_all
-                    printMsgs "dialog" "ROMS have been scraped."
+                    if scrape_all_scraper; then
+                        printMsgs "dialog" "ROMS have been scraped."
+                    else
+                        printMsgs "dialog" "Scraping was aborted"
+                    fi
                     ;;
                 2)
-                    rp_callModule "$md_id" scrape_chosen
-                    printMsgs "dialog" "ROMS have been scraped."
+                    if scrape_chosen_scraper; then
+                        printMsgs "dialog" "ROMS have been scraped."
+                    else
+                        printMsgs "dialog" "Scraping was aborted"
+                    fi
                     ;;
                 3)
                     use_thumbs="$((use_thumbs ^ 1))"
                     iniSet "use_thumbs" "$use_thumbs"
                     ;;
                 4)
-                    cmd=(dialog --backtitle "$__backtitle" --inputbox "Please enter the max image width in pixels" 10 60 "$max_width")
-                    max_width=$("${cmd[@]}" 2>&1 >/dev/tty)
-                    iniSet "max_width" "$max_width"
+                    mame_src="$((( mame_src + 1) % 3))"
+                    iniSet "mame_src" "$mame_src"
                     ;;
                 5)
-                    use_gdb_scraper="$((use_gdb_scraper ^ 1))"
-                    iniSet "use_gdb_scraper" "$use_gdb_scraper"
+                    console_src="$((( console_src + 1) % 3))"
+                    iniSet "console_src" "$console_src"
                     ;;
                 6)
                     rom_name="$((( rom_name + 1 ) % 3))"
@@ -238,6 +299,24 @@ function gui_scraper() {
                 8)
                     use_rom_folder="$((use_rom_folder ^ 1))"
                     iniSet "use_rom_folder" "$use_rom_folder"
+                    ;;
+                9)
+                    download_videos="$((download_videos ^ 1))"
+                    iniSet "download_videos" "$download_videos"
+                    ;;
+                0)
+                    download_marquees="$((download_marquees ^ 1))"
+                    iniSet "download_marquees" "$download_marquees"
+                    ;;
+                H)
+                    cmd=(dialog --backtitle "$__backtitle" --inputbox "Please enter the max image height in pixels" 10 60 "$max_height")
+                    max_height=$("${cmd[@]}" 2>&1 >/dev/tty)
+                    iniSet "max_height" "$max_height"
+                    ;;
+                W)
+                    cmd=(dialog --backtitle "$__backtitle" --inputbox "Please enter the max image width in pixels" 10 60 "$max_width")
+                    max_width=$("${cmd[@]}" 2>&1 >/dev/tty)
+                    iniSet "max_width" "$max_width"
                     ;;
                 U)
                     rp_callModule "$md_id"

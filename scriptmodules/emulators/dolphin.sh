@@ -12,11 +12,12 @@
 rp_module_id="dolphin"
 rp_module_desc="Gamecube/Wii emulator Dolphin"
 rp_module_help="ROM Extensions: .iso\n\nCopy your gamecube roms to $romdir/gamecube and Wii roms to $romdir/wii"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/dolphin-emu/dolphin/master/license.txt"
 rp_module_section="exp"
 rp_module_flags="!arm"
 
 function depends_dolphin() {
-    local depends=(cmake pkg-config git libao-dev libasound2-dev libavcodec-dev libavformat-dev libbluetooth-dev libenet-dev libgtk2.0-dev liblzo2-dev libminiupnpc-dev libopenal-dev libpulse-dev libreadline-dev libsfml-dev libsoil-dev libsoundtouch-dev libswscale-dev libusb-1.0-0-dev libwxbase3.0-dev libwxgtk3.0-dev libxext-dev libxrandr-dev portaudio19-dev zlib1g-dev libudev-dev libevdev-dev libmbedtls-dev libcurl4-openssl-dev libegl1-mesa-dev)
+    local depends=(cmake pkg-config libao-dev libasound2-dev libavcodec-dev libavformat-dev libbluetooth-dev libenet-dev libgtk2.0-dev liblzo2-dev libminiupnpc-dev libopenal-dev libpulse-dev libreadline-dev libsfml-dev libsoil-dev libsoundtouch-dev libswscale-dev libusb-1.0-0-dev libwxbase3.0-dev libwxgtk3.0-dev libxext-dev libxrandr-dev portaudio19-dev zlib1g-dev libudev-dev libevdev-dev libmbedtls-dev libcurl4-openssl-dev libegl1-mesa-dev qtbase5-private-dev)
     getDepends "${depends[@]}"
 }
 
@@ -53,8 +54,11 @@ _EOF_
         chown -R $user:$user "$md_conf_root/gc/Config"
     fi
 
-    addSystem 1 "$md_id" "gc" "$md_inst/bin/dolphin-emu-nogui -e %ROM%"
-    addSystem 0 "$md_id-gui" "gc" "$md_inst/bin/dolphin-emu -b -e %ROM%"
-    addSystem 1 "$md_id" "wii" "$md_inst/bin/dolphin-emu-nogui -e %ROM%"
-    addSystem 0 "$md_id-gui" "wii" "$md_inst/bin/dolphin-emu -b -e %ROM%"
+    addEmulator 1 "$md_id" "gc" "$md_inst/bin/dolphin-emu-nogui -e %ROM%"
+    addEmulator 0 "$md_id-gui" "gc" "$md_inst/bin/dolphin-emu -b -e %ROM%"
+    addEmulator 1 "$md_id" "wii" "$md_inst/bin/dolphin-emu-nogui -e %ROM%"
+    addEmulator 0 "$md_id-gui" "wii" "$md_inst/bin/dolphin-emu -b -e %ROM%"
+
+    addSystem "gc"
+    addSystem "wii"
 }

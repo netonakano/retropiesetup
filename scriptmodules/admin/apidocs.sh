@@ -9,23 +9,25 @@
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
-rp_module_id="docs"
+rp_module_id="apidocs"
 rp_module_desc="Generate developer documentation"
 rp_module_section=""
 
-function depends_docs() {
+function depends_apidocs() {
     getDepends doxygen graphviz
 }
 
-function sources_docs() {
+function sources_apidocs() {
     gitPullOrClone "$md_build" https://github.com/Anvil/bash-doxygen.git
 }
 
-function build_docs() {
+function build_apidocs() {
     local config="Doxyfile"
     rm -f "$config"
     doxygen -g "$config" >/dev/null
+
     iniConfig " = " '' "$config"
+
     iniSet "PROJECT_NAME" "RetroPie-Setup"
     iniSet "PROJECT_NUMBER" "$__version"
 
@@ -33,19 +35,21 @@ function build_docs() {
     iniSet "QUIET" "YES"
     iniSet "WARN_IF_DOC_ERROR" "NO"
     iniSet "INPUT" "$scriptdir"
-    iniSet "FILE_PATTERNS" "*.sh"
     iniSet "EXCLUDE_PATTERNS" "*/tmp/*"
     iniSet "INPUT_FILTER" "\"sed -n -f $md_build/doxygen-bash.sed -- \""
     iniSet "RECURSIVE" "YES"
+
+    # unable to use iniSet for latest doxygen "multi line" FILE_PATTERNS default
+    echo "FILE_PATTERNS = *.sh" >>"$config"
+
     doxygen "$config"
 }
 
-function install_docs() {
-    rm -rf "$scriptdir/docs"
-    cp -R "$md_build/html" "$scriptdir/docs"
-    chown -R $user:$user "$scriptdir/docs"
+function install_apidocs() {
+    rsync -a --delete "$md_build/html/" "$__tmpdir/apidocs/"
+    chown -R $user:$user "$__tmpdir/apidocs"
 }
 
-function upload_docs() {
-    rsync -av --delete "$scriptdir/docs/" "retropie@$__binary_host:retropie-setup-api/"
+function upload_apidocs() {
+    rsync -av --delete "$__tmpdir/apidocs/" "retropie@$__binary_host:api/"
 }

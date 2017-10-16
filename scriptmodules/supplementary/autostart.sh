@@ -37,7 +37,7 @@ _EOF_
     # delete any previous entries for emulationstation / kodi in autostart.sh
     sed -i '/#auto/d' "$script"
     # make sure there is a newline
-    sed -i -e '$a\' "$script"
+    sed -i '$a\' "$script"
     case "$mode" in
         kodi)
             echo -e "kodi #auto\nemulationstation #auto" >>"$script"
@@ -86,7 +86,7 @@ function disable_autostart() {
         rm "$home/.config/autostart/retropie.desktop"
     else
         if [[ "$__os_id" == "Raspbian" ]]; then
-            if [["$__chroot" -eq 1 ]]; then
+            if [[ "$__chroot" -eq 1 ]]; then
                 systemctl set-default graphical.target
                 ln -fs /lib/systemd/system/getty@.service /etc/systemd/system/getty.target.wants/getty@tty1.service
             else
@@ -135,9 +135,9 @@ function gui_autostart() {
                 options+=(DA "Boot to desktop (auto login as $user)")
             fi
         fi
-        choices=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-        if [[ -n "$choices" ]]; then
-            case $choices in
+        choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+        if [[ -n "$choice" ]]; then
+            case "$choice" in
                 1)
                     if isPlatform "x11"; then
                         if [[ "$x11_autostart" -eq 0 ]]; then

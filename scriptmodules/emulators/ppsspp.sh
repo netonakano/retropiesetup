@@ -12,6 +12,7 @@
 rp_module_id="ppsspp"
 rp_module_desc="PlayStation Portable emulator PPSSPP"
 rp_module_help="ROM Extensions: .iso .pbp .cso\n\nCopy your PlayStation Portable roms to $romdir/psp"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/hrydgard/ppsspp/master/LICENSE.TXT"
 rp_module_section="opt"
 
 function depends_ppsspp() {
@@ -23,19 +24,19 @@ function depends_ppsspp() {
 function sources_ppsspp() {
     gitPullOrClone "$md_build/ppsspp" https://github.com/hrydgard/ppsspp.git
     cd ppsspp
-    runCmd git submodule update --init --recursive
 
     # remove the lines that trigger the ffmpeg build script functions - we will just use the variables from it
     sed -i "/^build_ARMv6$/,$ d" ffmpeg/linux_arm.sh
 
-    if isPlatform "aarch64"; then
-        applyPatch "$md_data/01_aarch64.diff"
-    fi
+    # remove -U__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 as we handle this ourselves if armv7 on Raspbian
+    sed -i "/^  -U__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2/d" cmake/Toolchains/raspberry.armv7.cmake
+    # set ARCH_FLAGS to our own CXXFLAGS (which includes GCC_HAVE_SYNC_COMPARE_AND_SWAP_2 if needed)
+    sed -i "s/^set(ARCH_FLAGS.*/set(ARCH_FLAGS \"$CXXFLAGS\")/" cmake/Toolchains/raspberry.armv7.cmake
 
     if hasPackage cmake 3.6 lt; then
         cd ..
         mkdir -p cmake
-        wget -q -O- "$__archive_url/cmake-3.6.2.tar.gz" | tar -xvz --strip-components=1 -C cmake
+        downloadAndExtract "$__archive_url/cmake-3.6.2.tar.gz" "$md_build/cmake" 1
     fi
 }
 
@@ -110,17 +111,17 @@ function build_ppsspp() {
     # build ppsspp
     cd "$md_build/ppsspp"
     rm -rf CMakeCache.txt CMakeFiles
+    local params=()
     if isPlatform "rpi"; then
         if isPlatform "armv6"; then
-            "$cmake" -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv6.cmake .
+            params+=(-DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv6.cmake)
         else
-            "$cmake" -DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv7.cmake .
+            params+=(-DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv7.cmake)
         fi
     elif isPlatform "mali"; then
-        "$cmake" . -DUSING_GLES2=ON -DUSING_FBDEV=ON
-    else
-        "$cmake" .
+        params+=(-DUSING_GLES2=ON -DUSING_FBDEV=ON)
     fi
+    "$cmake" "${params[@]}" .
     make clean
     make
 
@@ -130,7 +131,6 @@ function build_ppsspp() {
 function install_ppsspp() {
     md_ret_files=(
         'ppsspp/assets'
-        'ppsspp/flash0'
         'ppsspp/PPSSPPSDL'
     )
 }
@@ -143,5 +143,6 @@ function configure_ppsspp() {
     mkUserDir "$md_conf_root/psp/PSP"
     ln -snf "$romdir/psp" "$md_conf_root/psp/PSP/GAME"
 
-    addSystem 0 "$md_id" "psp" "$md_inst/PPSSPPSDL %ROM%"
+    addEmulator 0 "$md_id" "psp" "$md_inst/PPSSPPSDL %ROM%"
+    addSystem "psp"
 }

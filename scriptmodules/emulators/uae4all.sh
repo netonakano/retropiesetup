@@ -11,7 +11,8 @@
 
 rp_module_id="uae4all"
 rp_module_desc="Amiga emulator UAE4All"
-rp_module_help="ROM Extension: .adf\n\nCopy your Amiga roms to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir"
+rp_module_help="ROM Extension: .adf\n\nCopy your Amiga games to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/RetroPie/uae4all2/retropie/copying"
 rp_module_section="opt"
 rp_module_flags="dispmanx !x86 !mali"
 
@@ -22,7 +23,7 @@ function depends_uae4all() {
 function sources_uae4all() {
     gitPullOrClone "$md_build" https://github.com/RetroPie/uae4all2.git retropie
     mkdir guichan
-    wget -O- -q "$__archive_url/guichan-0.8.2.tar.gz" | tar -xvz --strip-components=1 -C "guichan"
+    downloadAndExtract "$__archive_url/guichan-0.8.2.tar.gz" "$md_build/guichan" 1
     cd guichan
     # fix from https://github.com/sphaero/guichan
     applyPatch guichan.diff <<\_EOF_
@@ -117,6 +118,7 @@ function configure_uae4all() {
     fi
     moveConfigDir "$md_inst/kickstarts" "$biosdir"
 
+    rm -f "$romdir/amiga/+Start UAE4All.sh"
     if [[ "$md_mode" == "install" ]]; then
         if [[ ! -f "$biosdir/aros-amiga-m68k-ext.bin" ]]; then
             # unpack aros kickstart
@@ -137,5 +139,6 @@ _EOF_
         rm -f "$biosdir/aros-amiga-m68k"*
     fi
 
-    addSystem 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4All.sh" "Amiga" ".sh"
+    addEmulator 1 "$md_id" "amiga" "bash $romdir/amiga/+Start\ UAE4All.sh"
+    addSystem "amiga"
 }

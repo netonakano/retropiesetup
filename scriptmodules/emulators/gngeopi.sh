@@ -12,6 +12,7 @@
 rp_module_id="gngeopi"
 rp_module_desc="NeoGeo emulator GnGeoPi"
 rp_module_help="ROM Extension: .zip\n\nCopy your GnGeoPi roms to $romdir/neogeo\n\nCopy the required BIOS file neogeo.zip BIOS to $romdir/neogeo"
+rp_module_licence="NONCOM https://github.com/ymartel06/GnGeo-Pi/blob/master/gngeo/COPYING"
 rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
@@ -55,6 +56,8 @@ _EOF_
         chown -R $user:$user "$md_conf_root/neogeo/gngeorc"
     fi
 
-    addSystem 0 "$md_id" "arcade" "$md_inst/bin/gngeo -i $romdir/neogeo -B $md_inst/neogeobios %ROM%"
-    addSystem 0 "$md_id" "neogeo" "$md_inst/bin/gngeo -i $romdir/neogeo -B $md_inst/neogeobios %ROM%"
+    addEmulator 0 "$md_id" "arcade" "$md_inst/bin/gngeo -i $romdir/neogeo -B $md_inst/neogeobios %ROM%"
+    addEmulator 0 "$md_id" "neogeo" "$md_inst/bin/gngeo -i $romdir/neogeo -B $md_inst/neogeobios %ROM%"
+    addSystem "arcade"
+    addSystem "neogeo"
 }

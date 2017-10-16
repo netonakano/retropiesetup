@@ -56,7 +56,7 @@ function list_available_bluetooth() {
         mkfifo "$fifo"
         exec 3<>"$fifo"
         local line
-        while read -r -n12 line; do
+        while read -r -n18 line; do
             if [[ "$line" == *"[bluetooth]"* ]]; then
                 echo "scan on" >&3
                 read -r line
@@ -87,7 +87,7 @@ function list_registered_bluetooth() {
     local device_name
     while read line; do
         mac_address="$(echo "$line" | sed 's/ /,/g' | cut -d, -f1)"
-        device_name="$(echo "$line" | sed -e 's/'"$mac_address"' //g')"
+        device_name="$(echo "$line" | sed 's/'"$mac_address"' //g')"
         echo -e "$mac_address\n$device_name"
     done < <($(get_script_bluetooth bluez-test-device) list)
 }
@@ -100,7 +100,7 @@ function display_active_and_registered_bluetooth() {
     [[ -z "$registered" ]] && registered="There are no registered devices"
 
     if [[ "$(hcitool con)" != "Connections:" ]]; then
-        active="$(hcitool con 2>&1 | sed -e 1d)"
+        active="$(hcitool con 2>&1 | sed 1d)"
     else
         active="There are no active connections"
     fi
@@ -312,9 +312,9 @@ function connect_mode_bluetooth() {
     local cmd=(dialog --backtitle "$__backtitle" --default-item "$connect_mode" --menu "Choose a connect mode" 22 76 16)
 
     local options=(
-        default "Bluetooth stack default behaviour"
+        default "Bluetooth stack default behaviour (recommended)"
         boot "Connect to devices once at boot"
-        background "Connect to devices in the background"
+        background "Force connecting to devices in the background"
     )
 
     local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
@@ -377,7 +377,9 @@ function gui_bluetooth() {
 
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
-            case $choice in
+            # temporarily restore Bluetooth stack (if needed)
+            service sixad status >/dev/null && sixad -r
+            case "$choice" in
                 R)
                     register_bluetooth
                     ;;
@@ -402,6 +404,8 @@ function gui_bluetooth() {
                     ;;
             esac
         else
+            # restart sixad (if running)
+            service sixad status >/dev/null && service sixad restart && printMsgs "dialog" "NOTICE: The ps3controller driver was temporarily interrupted in order to allow compatibility with standard Bluetooth peripherals. Please re-pair your Dual Shock controller to continue (or disregard this message if currently using another controller)."
             break
         fi
     done

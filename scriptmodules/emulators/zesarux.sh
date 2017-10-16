@@ -11,7 +11,8 @@
 
 rp_module_id="zesarux"
 rp_module_desc="ZX Spectrum emulator ZEsarUX"
-rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum roms to $romdir/zxspectrum"
+rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum games to $romdir/zxspectrum"
+rp_module_licence="GPL3 https://sourceforge.net/p/zesarux/code/ci/master/tree/LICENSE"
 rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
@@ -22,7 +23,7 @@ function depends_zesarux() {
 }
 
 function sources_zesarux() {
-    wget -O- -q "$__archive_url/ZEsarUX_src-4.1.tar.gz" | tar -xvz --strip-components=1
+    downloadAndExtract "$__archive_url/ZEsarUX_src-5.0.tar.gz" "$md_build" 1
 }
 
 function build_zesarux() {
@@ -87,7 +88,10 @@ _EOF_
 
     setDispmanx "$md_id" 1
 
-    addSystem 1 "$md_id" "zxspectrum" "bash $romdir/zxspectrum/+Start\ ZEsarUX.sh %ROM%"
-    addSystem 1 "$md_id" "samcoupe" "bash $romdir/zxspectrum/+Start\ ZEsarUX.sh --machine sam %ROM%"
-    addSystem 1 "$md_id" "amstradcpc" "bash $romdir/zxspectrum/+Start\ ZEsarUX.sh --machine CPC464 %ROM%"
+    addEmulator 1 "$md_id" "zxspectrum" "bash $romdir/zxspectrum/+Start\ ZEsarUX.sh %ROM%"
+    addEmulator 1 "$md_id" "samcoupe" "bash $romdir/zxspectrum/+Start\ ZEsarUX.sh --machine sam %ROM%"
+    addEmulator 1 "$md_id" "amstradcpc" "bash $romdir/zxspectrum/+Start\ ZEsarUX.sh --machine CPC464 %ROM%"
+    addSystem "zxspectrum"
+    addSystem "samcoupe"
+    addSystem "amstradcpc"
 }

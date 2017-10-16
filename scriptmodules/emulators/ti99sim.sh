@@ -11,7 +11,8 @@
 
 rp_module_id="ti99sim"
 rp_module_desc="TI-99/SIM - Texas Instruments Home Computer Emulator"
-rp_module_help="ROM Extension: .ctg\n\nCopy your TI-99 roms to $romdir/ti99\n\nCopy the required BIOS file TI-994A.ctg (case sensitive) to $biosdir"
+rp_module_help="ROM Extension: .ctg\n\nCopy your TI-99 games to $romdir/ti99\n\nCopy the required BIOS file TI-994A.ctg (case sensitive) to $biosdir"
+rp_module_licence="GPL2 http://www.mrousseau.org/programs/ti99sim/"
 rp_module_section="exp"
 rp_module_flags="!mali"
 
@@ -20,7 +21,7 @@ function depends_ti99sim() {
 }
 
 function sources_ti99sim() {
-    wget -q -O- "$__archive_url/ti99sim-0.13.0.src.tar.gz" | tar -xvz --strip-components=1
+    downloadAndExtract "$__archive_url/ti99sim-0.13.0.src.tar.gz" "$md_build" 1
 }
 
 function build_ti99sim() {
@@ -38,5 +39,6 @@ function configure_ti99sim() {
     moveConfigDir "$home/.ti99sim" "$md_conf_root/ti99/"
     ln -sf "$biosdir/TI-994A.ctg" "$md_inst/TI-994A.ctg"
 
-    addSystem 1 "$md_id" "ti99" "pushd $md_inst; $md_inst/ti99sim-sdl -f %ROM%; popd" "TI99" ".ctg .CTG"
+    addEmulator 1 "$md_id" "ti99" "pushd $md_inst; $md_inst/ti99sim-sdl -f %ROM%; popd"
+    addSystem "ti99"
 }

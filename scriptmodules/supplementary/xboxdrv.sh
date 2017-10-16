@@ -11,6 +11,7 @@
 
 rp_module_id="xboxdrv"
 rp_module_desc="Xbox / Xbox 360 gamepad driver"
+rp_module_licence="GPL3 https://raw.githubusercontent.com/zerojay/xboxdrv/stable/COPYING"
 rp_module_section="driver"
 
 function def_controllers_xboxdrv() {
@@ -149,7 +150,7 @@ function gui_xboxdrv() {
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
 
-            case $choice in
+            case "$choice" in
                 1)
                     enable_xboxdrv "$controllers" "$deadzone"
                     ;;

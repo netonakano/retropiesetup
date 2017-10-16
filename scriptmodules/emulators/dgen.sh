@@ -12,6 +12,7 @@
 rp_module_id="dgen"
 rp_module_desc="Megadrive/Genesis emulator DGEN"
 rp_module_help="ROM Extensions: .32x .iso .cue .smd .bin .gen .md .sg .zip\n\nCopy your  Megadrive / Genesis roms to $romdir/megadrive\nSega 32X roms to $romdir/sega32x\nand SegaCD roms to $romdir/segacd\nThe Sega CD requires the BIOS files bios_CD_U.bin, bios_CD_E.bin, and bios_CD_J.bin copied to $biosdir"
+rp_module_licence="GPL2 https://sourceforge.net/p/dgen/dgen/ci/master/tree/COPYING"
 rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
@@ -20,13 +21,18 @@ function depends_dgen() {
 }
 
 function sources_dgen() {
-    wget -O- -q $__archive_url/dgen-sdl-1.33.tar.gz | tar -xvz --strip-components=1
+    downloadAndExtract "$__archive_url/dgen-sdl-1.33.tar.gz" "$md_build" 1
 }
 
 function build_dgen() {
     local params=()
     isPlatform "rpi" && params+=(--disable-opengl --disable-hqx)
-    ./configure  --prefix="$md_inst"
+    # dgen contains obsoleted arm assembler that gcc/as will not like for armv8 cpu targets
+    if isPlatform "armv8"; then
+        CFLAGS="-O2 -march=armv7-a -mfpu=neon-vfpv4 -mfloat-abi=hard" ./configure --prefix="$md_inst"
+    else
+        ./configure --prefix="$md_inst"
+    fi
     make clean
     make
     md_ret_require="$md_build/dgen"
@@ -38,11 +44,15 @@ function install_dgen() {
     md_ret_require="$md_inst/bin/dgen"
 }
 
-function configure_dgen()
-{
-    mkRomDir "megadrive"
-    mkRomDir "segacd"
-    mkRomDir "sega32x"
+function configure_dgen() {
+    local system
+    for system in megadrive segacd sega32x; do
+        mkRomDir "$system"
+        addEmulator 0 "$md_id" "$system" "$md_inst/bin/dgen -r $md_conf_root/megadrive/dgenrc %ROM%"
+        addSystem "$system"
+    done
+
+    [[ "$md_mode" == "remove" ]] && return
 
     mkUserDir "$md_conf_root/megadrive"
 
@@ -94,8 +104,4 @@ function configure_dgen()
     iniSet "joy_pad2_start" "joystick1-button7"
 
     setDispmanx "$md_id" 1
-
-    addSystem 0 "$md_id" "megadrive" "$md_inst/bin/dgen -r $md_conf_root/megadrive/dgenrc %ROM%"
-    addSystem 0 "$md_id" "segacd" "$md_inst/bin/dgen -r $md_conf_root/megadrive/dgenrc %ROM%"
-    addSystem 0 "$md_id" "sega32x" "$md_inst/bin/dgen -r $md_conf_root/megadrive/dgenrc %ROM%"
 }

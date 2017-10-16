@@ -11,7 +11,8 @@
 
 rp_module_id="openmsx"
 rp_module_desc="MSX emulator OpenMSX"
-rp_module_help="ROM Extensions: .rom .mx1 .mx2 .col .dsk .zip\n\nCopy your MSX/MSX2 roms to $romdir/msx"
+rp_module_help="ROM Extensions: .rom .mx1 .mx2 .col .dsk .zip\n\nCopy your MSX/MSX2 games to $romdir/msx"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/openMSX/openMSX/master/doc/GPL.txt"
 rp_module_section="opt"
 rp_module_flags="!mali"
 
@@ -36,11 +37,12 @@ function build_openmsx() {
 function install_openmsx() {
     make install
     mkdir -p "$md_inst/share/systemroms/"
-    wget -q -O- "$__archive_url/openmsxroms.tar.gz" | tar -xvz -C "$md_inst/share/systemroms/"
+    downloadAndExtract "$__archive_url/openmsxroms.tar.gz" "$md_inst/share/systemroms/"
 }
 
 function configure_openmsx() {
     mkRomDir "msx"
 
-    addSystem 0 "$md_id" "msx" "$md_inst/bin/openmsx %ROM%"
+    addEmulator 0 "$md_id" "msx" "$md_inst/bin/openmsx %ROM%"
+    addSystem "msx"
 }

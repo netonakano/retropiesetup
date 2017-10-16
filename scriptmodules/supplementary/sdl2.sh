@@ -11,15 +11,16 @@
 
 rp_module_id="sdl2"
 rp_module_desc="SDL (Simple DirectMedia Layer) v2.x"
+rp_module_licence="ZLIB https://hg.libsdl.org/SDL/raw-file/f426dbef4aa0/COPYING.txt"
 rp_module_section=""
-rp_module_flags="!x86"
+rp_module_flags=""
 
 function get_ver_sdl2() {
-    echo "2.0.4"
+    echo "2.0.6"
 }
 
 function get_pkg_ver_sdl2() {
-    local ver="$(get_ver_sdl2)+4"
+    local ver="$(get_ver_sdl2)+1"
     isPlatform "rpi" && ver+="rpi"
     isPlatform "mali" && ver+="mali"
     echo "$ver"
@@ -32,9 +33,10 @@ function get_arch_sdl2() {
 function depends_sdl2() {
     # Dependencies from the debian package control + additional dependencies for the pi (some are excluded like dpkg-dev as they are
     # already covered by the build-essential package retropie relies on.
-    local depends=(devscripts debhelper dh-autoreconf libasound2-dev libudev-dev libibus-1.0-dev libdbus-1-dev libx11-dev libxcursor-dev libxext-dev libxi-dev libxinerama-dev libxrandr-dev libxss-dev libxt-dev libxxf86vm-dev)
+    local depends=(devscripts debhelper dh-autoreconf libasound2-dev libudev-dev libibus-1.0-dev libdbus-1-dev libx11-dev libxcursor-dev libxext-dev libxi-dev libxinerama-dev libxrandr-dev libxss-dev libxt-dev libxxf86vm-dev libgl1-mesa-dev fcitx-libs-dev)
     isPlatform "rpi" && depends+=(libraspberrypi-dev)
     isPlatform "mali" && depends+=(mali-fbdev)
+    isPlatform "x11" && depends+=(libpulse-dev)
     getDepends "${depends[@]}"
 }
 
@@ -43,7 +45,7 @@ function sources_sdl2() {
     local pkg_ver="$(get_pkg_ver_sdl2)"
 
     local branch="release-$ver"
-    isPlatform "rpi" && branch="retropie-$ver"
+    isPlatform "rpi" && branch="rpi-$ver"
     isPlatform "mali" && branch="mali-$ver"
 
     gitPullOrClone "$md_build/$pkg_ver" https://github.com/RetroPie/SDL-mirror.git "$branch"
@@ -83,6 +85,12 @@ function install_bin_sdl2() {
     wget -c "$__binary_url/libsdl2-2.0-0_$(get_pkg_ver_sdl2)_armhf.deb"
     install_sdl2
     rm ./*.deb
+}
+
+function revert_sdl2() {
+    aptUpdate
+    local packaged="$(apt-cache madison libsdl2-dev | cut -d" " -f3)"
+    aptInstall --force-yes libsdl2-2.0-0="$packaged" libsdl2-dev="$packaged"
 }
 
 function remove_sdl2() {

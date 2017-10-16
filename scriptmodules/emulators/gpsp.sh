@@ -12,8 +12,9 @@
 rp_module_id="gpsp"
 rp_module_desc="GameBoy Advance emulator"
 rp_module_help="ROM Extensions: .gba .zip\n\nCopy your Game Boy Advance roms to $romdir/gba\n\nCopy the required BIOS file gba_bios.bin to $biosdir"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/gizmo98/gpsp/master/COPYING.DOC"
 rp_module_section="opt"
-rp_module_flags="!x86 !mali"
+rp_module_flags="noinstclean !x86 !mali"
 
 function depends_gpsp() {
     getDepends libsdl1.2-dev libraspberrypi-dev
@@ -53,5 +54,6 @@ function configure_gpsp() {
     # move old config
     moveConfigFile "gpsp.cfg" "$md_conf_root/gba/gpsp.cfg"
 
-    addSystem 0 "$md_id" "gba" "$md_inst/gpsp %ROM%"
+    addEmulator 0 "$md_id" "gba" "$md_inst/gpsp %ROM%"
+    addSystem "gba"
 }

@@ -12,7 +12,9 @@
 rp_module_id="retropie-manager"
 rp_module_desc="Web Based Manager for RetroPie files and configs based on the Recalbox Manager"
 rp_module_help="Open your browser and go to http://your_retropie_ip:8000/"
+rp_module_licence="MIT https://raw.githubusercontent.com/botolo78/RetroPie-Manager/retropie/ORIGINAL%20LICENCE.txt"
 rp_module_section="exp"
+rp_module_flags="noinstclean"
 
 function depends_retropie-manager() {
     local depends=(python-dev virtualenv)
@@ -89,7 +91,7 @@ function gui_retropie-manager() {
         cmd=(dialog --backtitle "$__backtitle" --menu "$rpmanager_status\n\nChoose an option." 22 86 16)
         choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
-            case $choice in
+            case "$choice" in
                 1)
                     dialog --infobox "Starting RetroPie-Manager" 4 30 2>&1 >/dev/tty
                     error_msg="$("$md_inst/rpmanager.sh" --start 2>&1 >/dev/null)" \

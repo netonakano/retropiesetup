@@ -11,6 +11,7 @@
 
 rp_module_id="mehstation"
 rp_module_desc="mehstation emulator frontend"
+rp_module_licence="MIT https://raw.githubusercontent.com/remeh/mehstation/master/LICENSE"
 rp_module_section="exp"
 rp_module_flags="frontend"
 
@@ -66,7 +67,7 @@ function depends_mehstation() {
         cmake automake libfreeimage-dev libopenal-dev libpango1.0-dev
         libsndfile1-dev libudev-dev libasound2-dev libjpeg-dev
         libtiff5-dev libwebp-dev libsqlite3-dev libavutil-dev libavcodec-dev
-        libavformat-dev git libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
+        libavformat-dev libsdl2-dev libsdl2-image-dev libsdl2-ttf-dev
         libsdl2-image-dev sqlite3 golang
     )
     getDepends "${depends[@]}"

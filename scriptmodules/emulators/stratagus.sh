@@ -11,7 +11,8 @@
 
 rp_module_id="stratagus"
 rp_module_desc="Stratagus - A strategy game engine to play Warcraft I or II, Starcraft, and some similar open-source games"
-rp_module_help="Copy your Stratagus roms to $romdir/stratagus"
+rp_module_help="Copy your Stratagus games to $romdir/stratagus"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/Wargus/stratagus/master/COPYING"
 rp_module_section="opt"
 rp_module_flags="!mali"
 
@@ -41,5 +42,6 @@ function install_stratagus() {
 function configure_stratagus() {
     mkRomDir "stratagus"
 
-    addSystem 0 "$md_id" "stratagus" "$md_inst/stratagus -F -d %ROM%" "Stratagus Strategy Engine" ".wc1 .wc2 .sc .data"
+    addEmulator 0 "$md_id" "stratagus" "$md_inst/stratagus -F -d %ROM%"
+    addSystem "stratagus" "Stratagus Strategy Engine" ".wc1 .wc2 .sc .data"
 }

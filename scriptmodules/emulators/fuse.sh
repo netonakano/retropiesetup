@@ -11,7 +11,8 @@
 
 rp_module_id="fuse"
 rp_module_desc="ZX Spectrum emulator Fuse"
-rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum roms to $romdir/zxspectrum"
+rp_module_help="ROM Extensions: .sna .szx .z80 .tap .tzx .gz .udi .mgt .img .trd .scl .dsk .zip\n\nCopy your ZX Spectrum games to $romdir/zxspectrum"
+rp_module_licence="GPL2 https://sourceforge.net/p/fuse-emulator/fuse/ci/master/tree/COPYING"
 rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
@@ -20,9 +21,9 @@ function depends_fuse() {
 }
 
 function sources_fuse() {
-    wget -O- -q $__archive_url/fuse-1.3.0.tar.gz | tar -xvz --strip-components=1
+    downloadAndExtract "$__archive_url/fuse-1.4.0.tar.gz" "$md_build" 1
     mkdir libspectrum
-    wget -O- -q $__archive_url/libspectrum-1.3.0.tar.gz | tar -xvz --strip-components=1 -C libspectrum
+    downloadAndExtract "$__archive_url/libspectrum-1.4.0.tar.gz" "$md_build/libspectrum" 1
     if ! isPlatform "x11"; then
         applyPatch cursor.diff <<\_EOF_
 --- a/ui/sdl/sdldisplay.c	2015-02-18 22:39:05.631516602 +0000
@@ -44,7 +45,7 @@ function build_fuse() {
     make clean
     make
     popd
-    CFLAGS+=" -I$md_build/libspectrum" LDFLAGS+=" -L$md_build/libspectrum/.libs" ./configure --prefix="$md_inst" --without-libao --without-gpm --without-gtk --without-libxml2 --with-sdl
+    ./configure --prefix="$md_inst" --without-libao --without-gpm --without-gtk --without-libxml2 --with-sdl LIBSPECTRUM_CFLAGS="-I$md_build/libspectrum" LIBSPECTRUM_LIBS="-L$md_build/libspectrum/.libs -lspectrum"
     make clean
     make
     md_ret_require="$md_build/fuse"
@@ -64,8 +65,14 @@ function configure_fuse() {
     setDispmanx "$md_id" 1
     configure_dispmanx_on_fuse
 
-    addSystem 0 "$md_id-48k" "zxspectrum" "$md_inst/bin/fuse --machine 48 %ROM%"
-    addSystem 0 "$md_id-128k" "zxspectrum" "$md_inst/bin/fuse --machine 128 %ROM%"
+        cat > "$romdir/zxspectrum/+Start Fuse.sh" << _EOF_
+#!/bin/bash
+$md_inst/bin/fuse --machine 128 --full-screen
+_EOF_
+
+    addEmulator 0 "$md_id-48k" "zxspectrum" "$md_inst/bin/fuse --machine 48 --full-screen %ROM%"
+    addEmulator 0 "$md_id-128k" "zxspectrum" "$md_inst/bin/fuse --machine 128 --full-screen %ROM%"
+    addSystem "zxspectrum"
 }
 
 function configure_dispmanx_on_fuse() {

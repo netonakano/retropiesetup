@@ -15,9 +15,9 @@ function _get_config_pifba() {
 
 function _split_config_pifba() {
     local cfg="$(_get_config_pifba)"
-    sed -n -e '/\[Keyboard\]/,/\[/p' "$cfg" | head -n -1 >/tmp/pifba-kb.cfg
-    sed -n -e '/\[Joystick\]/,/\[/p' "$cfg" | head -n -1 >/tmp/pifba-js.cfg
-    sed -n -e '/\[Graphics\]/,/\[/p' "$cfg" | head -n -1 >/tmp/pifba-gfx.cfg
+    sed -n '/\[Keyboard\]/,/\[/p' "$cfg" | head -n -1 >/tmp/pifba-kb.cfg
+    sed -n '/\[Joystick\]/,/\[/p' "$cfg" | head -n -1 >/tmp/pifba-js.cfg
+    sed -n '/\[Graphics\]/,/\[/p' "$cfg" | head -n -1 >/tmp/pifba-gfx.cfg
 }
 
 function check_pifba() {
@@ -40,12 +40,10 @@ function onstart_pifba_keyboard() {
 }
 
 function map_pifba_keyboard() {
-    local device_type="$1"
-    local device_name="$2"
-    local input_name="$3"
-    local input_type="$4"
-    local input_id="$5"
-    local input_value="$6"
+    local input_name="$1"
+    local input_type="$2"
+    local input_id="$3"
+    local input_value="$4"
 
     local key
     case "$input_name" in
@@ -94,8 +92,6 @@ function map_pifba_keyboard() {
 }
 
 function map_pifba_joystick() {
-    local device_type="$1"
-    local device_name="$2"
     local input_name="$3"
     local input_type="$4"
     local input_id="$5"

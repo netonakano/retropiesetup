@@ -12,15 +12,14 @@
 rp_module_id="rpix86"
 rp_module_desc="DOS Emulator rpix86"
 rp_module_help="ROM Extensions: .bat .com .exe .sh\n\nCopy your DOS games to $romdir/pc"
+rp_module_licence="FREEWARE http://rpix86.patrickaalto.com/rdown.html"
 rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
 function install_bin_rpix86() {
-    wget -O- -q $__archive_url/rpix86.tar.gz | tar -xvz -C "$md_inst"
+    downloadAndExtract "$__archive_url/rpix86.tar.gz" "$md_inst"
     # install 4DOS.com
-    wget $__archive_url/4dos.zip -O "$md_inst/4dos.zip"
-    unzip -n "$md_inst/4dos.zip" -d "$md_inst"
-    rm "$md_inst/4dos.zip"
+    downloadAndExtract "$__archive_url/4dos.zip" "$md_inst"
 }
 
 function configure_rpix86() {
@@ -42,5 +41,6 @@ _EOF_
     chown $user:$user "$romdir/pc/+Start rpix86.sh"
     ln -sfn "$romdir/pc" games
 
-    addSystem 0 "$md_id" "pc" "bash $romdir/pc/+Start\ rpix86.sh %ROM%"
+    addEmulator 0 "$md_id" "pc" "bash $romdir/pc/+Start\ rpix86.sh %ROM%"
+    addSystem "pc"
 }

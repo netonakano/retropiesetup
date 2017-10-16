@@ -12,6 +12,7 @@
 rp_module_id="daphne"
 rp_module_desc="Daphne - Laserdisc Emulator"
 rp_module_help="ROM Extension: .daphne\n\nCopy your Daphne roms to $romdir/daphne"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/RetroPie/daphne-emu/master/COPYING"
 rp_module_section="opt"
 rp_module_flags="!x86 !mali"
 
@@ -70,5 +71,6 @@ _EOF_
     chown -R $user:$user "$md_inst"
     chown -R $user:$user "$md_conf_root/daphne/dapinput.ini"
 
-    addSystem 1 "$md_id" "daphne" "$md_inst/daphne.sh %ROM%" "Daphne" ".daphne"
+    addEmulator 1 "$md_id" "daphne" "$md_inst/daphne.sh %ROM%"
+    addSystem "daphne"
 }

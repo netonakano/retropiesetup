@@ -12,6 +12,7 @@
 rp_module_id="fs-uae"
 rp_module_desc="Amiga emulator - FS-UAE integrates the most accurate Amiga emulation code available from WinUAE"
 rp_module_help="ROM Extension: .adf  .adz .dms .ipf .zip\n\nCopy your Amiga games to $romdir/amiga\n\nCopy a required BIOS file (e.g. kick13.rom) to $biosdir"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/FrodeSolheim/fs-uae/master/COPYING"
 rp_module_section="exp"
 rp_module_flags="!arm"
 
@@ -68,7 +69,7 @@ function configure_fs-uae() {
     iniSet "floppy_drive_speed" "100"
     copyDefaultConfig "$config" "$md_conf_root/amiga/fs-uae/Default.fs-uae"
     rm "$config"
-    
-    local exts=$(getPlatformConfig amiga_exts)
-    addSystem 1 "$md_id" "amiga" "bash $md_inst/bin/fs-uae.sh '$exts' %ROM%"
+
+    addEmulator 1 "$md_id" "amiga" "bash $md_inst/bin/fs-uae.sh %ROM%"
+    addSystem "amiga"
 }

@@ -11,23 +11,23 @@
 
 rp_module_id="hatari"
 rp_module_desc="Atari emulator Hatari"
-rp_module_help="ROM Extensions: .st .stx .img .rom .raw .ipf .ctr\n\nCopy your Hatari roms to $romdir/atarist"
+rp_module_help="ROM Extensions: .st .stx .img .rom .raw .ipf .ctr\n\nCopy your Atari ST games to $romdir/atarist"
+rp_module_licence="GPL2 https://hg.tuxfamily.org/mercurialroot/hatari/hatari/file/9ee1235233e9/gpl.txt"
 rp_module_section="opt"
-rp_module_flags="!mali"
+rp_module_flags=""
 
 function depends_hatari() {
     getDepends libsdl2-dev zlib1g-dev libpng12-dev cmake libreadline-dev portaudio19-dev
 }
 
 function _sources_libcapsimage_hatari() {
-    wget -q -O spsdeclib.zip "$__archive_url/spsdeclib_5.1_source.zip"
-    unzip -o spsdeclib.zip
+    downloadAndExtract "$__archive_url/spsdeclib_5.1_source.zip" "$md_build"
     unzip -o capsimg_source_linux_macosx.zip
     chmod u+x capsimg_source_linux_macosx/CAPSImg/configure
 }
 
 function sources_hatari() {
-    wget -q -O- "$__archive_url/hatari-1.9.0.tar.bz2" | tar -xvj --strip-components=1
+    downloadAndExtract "$__archive_url/hatari-1.9.0.tar.bz2" "$md_build" 1
     # we need to use capsimage 5, as there is no source for 4.2
     sed -i "s/CAPSIMAGE_VERSION 4/CAPSIMAGE_VERSION 5/" cmake/FindCapsImage.cmake
     # capsimage 5.1 misses these types that were defined in 4.2
@@ -84,16 +84,17 @@ function configure_hatari() {
 
     # move any old configs to new location
     moveConfigDir "$home/.hatari" "$md_conf_root/atarist"
-    
+
     local common_config=("--confirm-quit 0" "--statusbar 0")
     if ! isPlatform "x11"; then
         common_config+=("--zoom 1" "-w")
     else
         common_config+=("-f")
     fi
-    
-    addSystem 1 "$md_id-fast" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 0 --timer-d 1 --borders 0 %ROM%"
-    addSystem 0 "$md_id-fast-borders" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 0 --timer-d 1 --borders 1 %ROM%"
-    addSystem 0 "$md_id-compatible" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 1 --timer-d 0 --borders 0 %ROM%"
-    addSystem 0 "$md_id-compatible-borders" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 1 --timer-d 0 --borders 1 %ROM%"
+
+    addEmulator 1 "$md_id-fast" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 0 --timer-d 1 --borders 0 %ROM%"
+    addEmulator 0 "$md_id-fast-borders" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 0 --timer-d 1 --borders 1 %ROM%"
+    addEmulator 0 "$md_id-compatible" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 1 --timer-d 0 --borders 0 %ROM%"
+    addEmulator 0 "$md_id-compatible-borders" "atarist" "$md_inst/bin/hatari ${common_config[*]} --compatible 1 --timer-d 0 --borders 1 %ROM%"
+    addSystem "atarist"
 }

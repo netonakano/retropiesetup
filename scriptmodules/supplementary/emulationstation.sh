@@ -11,6 +11,7 @@
 
 rp_module_id="emulationstation"
 rp_module_desc="EmulationStation - Frontend used by RetroPie for launching emulators"
+rp_module_licence="MIT https://raw.githubusercontent.com/RetroPie/EmulationStation/master/LICENSE.md"
 rp_module_section="core"
 rp_module_flags="frontend"
 
@@ -79,7 +80,7 @@ function _del_system_emulationstation() {
     local fullname="$1"
     local name="$2"
     if [[ -f /etc/emulationstation/es_systems.cfg ]]; then
-        xmlstarlet ed -L -P -d "/systemList/system[name='$system']" /etc/emulationstation/es_systems.cfg
+        xmlstarlet ed -L -P -d "/systemList/system[name='$name']" /etc/emulationstation/es_systems.cfg
     fi
 }
 
@@ -125,7 +126,7 @@ function depends_emulationstation() {
         libboost-locale-dev libboost-system-dev libboost-filesystem-dev
         libboost-date-time-dev libfreeimage-dev libfreetype6-dev libeigen3-dev
         libcurl4-openssl-dev libasound2-dev cmake libsdl2-dev libsm-dev
-        libvlc-dev libvlccore-dev vlc-nox
+        libvlc-dev libvlccore-dev vlc
     )
 
     isPlatform "x11" && depends+=(gnome-terminal)
@@ -135,13 +136,13 @@ function depends_emulationstation() {
 function sources_emulationstation() {
     local repo="$1"
     local branch="$2"
-    [[ -z "$repo" ]] && repo="https://github.com/retropie/EmulationStation"
-    [[ -z "$branch" ]] && branch="master"
+    [[ -z "$repo" ]] && repo="https://github.com/RetroPie/EmulationStation"
+    [[ -z "$branch" ]] && branch="stable"
     gitPullOrClone "$md_build" "$repo" "$branch"
 }
 
 function build_emulationstation() {
-    rpSwap on 512
+    rpSwap on 1000
     cmake . -DFREETYPE_INCLUDE_DIRS=/usr/include/freetype2/
     make clean
     make
@@ -210,14 +211,16 @@ export TTY="\${tty:8:1}"
 clear
 tput civis
 "$md_inst/emulationstation.sh" "\$@"
-reset
-
+if [[ $? -eq 139 ]]; then
+    dialog --cr-wrap --no-collapse --msgbox "Emulation Station crashed!\n\nIf this is your first boot of RetroPie - make sure you are using the correct image for your system.\n\\nCheck your rom file/folder permissions and if running on a Raspberry Pi, make sure your gpu_split is set high enough and/or switch back to using carbon theme.\n\nFor more help please use the RetroPie forum." 20 60 >/dev/tty
+fi
+tput cnorm
 _EOF_
     chmod +x /usr/bin/emulationstation
 
     if isPlatform "x11"; then
         mkdir -p /usr/local/share/{icons,applications}
-        cp "$md_data/retropie.svg" "/usr/local/share/icons/"
+        cp "$scriptdir/scriptmodules/$md_type/emulationstation/retropie.svg" "/usr/local/share/icons/"
         cat > /usr/local/share/applications/retropie.desktop << _EOF_
 [Desktop Entry]
 Type=Application
@@ -241,7 +244,7 @@ function clear_input_emulationstation() {
 }
 
 function remove_emulationstation() {
-    rm -rfv "/etc/emulationstation" "/usr/bin/emulationstation" "$configdir/all/emulationstation/"*.cfg "$configdir/all/emulationstation/"*.txt
+    rm -f "/usr/bin/emulationstation"
     if isPlatform "x11"; then
         rm -rfv "/usr/local/share/icons/retropie.svg" "/usr/local/share/applications/retropie.desktop"
     fi
@@ -252,6 +255,14 @@ function configure_emulationstation() {
     moveConfigDir "$home/.emulationstation" "$configdir/all/emulationstation"
 
     [[ "$mode" == "remove" ]] && return
+
+    # remove other emulation station if it's installed, so we don't end up with
+    # both packages interfering - but leave configs alone so switching is easy
+    if [[ "$md_id" == "emulationstation-dev" ]]; then
+        rmDirExists "$rootdir/$md_type/emulationstation"
+    else
+        rmDirExists "$rootdir/$md_type/emulationstation-dev"
+    fi
 
     init_input_emulationstation
 
@@ -322,6 +333,9 @@ function gui_emulationstation() {
             3)
                 es_swap="$((es_swap ^ 1))"
                 setAutoConf "es_swap_a_b" "$es_swap"
+                local ra_swap="false"
+                getAutoConf "es_swap_a_b" && ra_swap="true"
+                iniSet "menu_swap_ok_cancel_buttons" "$ra_swap" "$configdir/all/retroarch.cfg"
                 printMsgs "dialog" "You will need to reconfigure you controller in Emulation Station for the changes to take effect."
                 ;;
         esac

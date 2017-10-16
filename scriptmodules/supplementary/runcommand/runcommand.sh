@@ -91,6 +91,9 @@ function get_config() {
         iniGet "disable_menu"
         DISABLE_MENU="$ini_value"
         [[ "$DISABLE_MENU" -eq 1 ]] && DISABLE_JOYSTICK=1
+        iniGet "image_delay"
+        IMAGE_DELAY="$ini_value"
+        [[ -z "$IMAGE_DELAY" ]] && IMAGE_DELAY=2
     fi
 
     if [[ -f "$TVSERVICE" ]]; then
@@ -376,7 +379,7 @@ function load_mode_defaults() {
             default_mode set vid_rom "$mode"
             MODE_REQ_ID="$mode"
         else
-            mode="$(default_mode get vid_rom_old)"
+            mode="$(default_mode get vid_rom)"
             [[ -n "$mode" ]] && MODE_REQ_ID="$mode"
         fi
 
@@ -408,6 +411,9 @@ function main_menu() {
     local save
     local cmd
     local choice
+
+    local user_menu=0
+    [[ -d "$CONFIGDIR/all/runcommand-menu" && -n "$(find "$CONFIGDIR/all/runcommand-menu" -maxdepth 1 -name "*.sh")" ]] && user_menu=1
 
     [[ -z "$ROM_BN" ]] && ROM_BN="game/rom"
     [[ -z "$SYSTEM" ]] && SYSTEM="emulator/port"
@@ -459,6 +465,10 @@ function main_menu() {
             options+=(Z "Launch with netplay enabled")
         fi
 
+        if [[ "$user_menu" -eq 1 ]]; then
+            options+=(U "User Menu")
+        fi
+
         options+=(Q "Exit (without launching)")
 
         local temp_mode
@@ -469,7 +479,7 @@ function main_menu() {
         fi
         cmd=(dialog --nocancel --menu "System: $SYSTEM\nEmulator: $EMULATOR\nVideo Mode: $temp_mode\nROM: $ROM_BN"  22 76 16 )
         choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
-        case $choice in
+        case "$choice" in
             1)
                 choose_emulator "emu_sys" "$emu_sys"
                 ;;
@@ -531,6 +541,12 @@ function main_menu() {
                 COMMAND+=" --verbose"
                 return 0
                 ;;
+            U)
+                user_menu
+                local ret="$?"
+                [[ "$ret" -eq 1 ]] && return 1
+                [[ "$ret" -eq 2 ]] && return 0
+                ;;
             Q)
                 return 1
                 ;;
@@ -559,6 +575,7 @@ function choose_mode() {
 function choose_emulator() {
     local mode="$1"
     local default="$2"
+    local cancel="$3"
 
     local default
     local default_id
@@ -581,7 +598,7 @@ function choose_emulator() {
         dialog --msgbox "No emulator options found for $SYSTEM - have you installed any snes emulators yet? Do you have a valid $EMU_SYS_CONF ?" 20 60 >/dev/tty
         exit 1
     fi
-    local cmd=(dialog --default-item "$default_id" --menu "Choose default emulator"  22 76 16 )
+    local cmd=(dialog $cancel --default-item "$default_id" --menu "Choose default emulator"  22 76 16 )
     local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
     [[ -z "$choice" ]] && return
 
@@ -591,17 +608,35 @@ function choose_emulator() {
     load_mode_defaults
 }
 
+function get_resolutions() {
+    local res=(
+        "320x224"
+        "320x240"
+        "400x240"
+        "480x320"
+        "640x480"
+        "720x480"
+        "720x576"
+        "800x480"
+        "800x600"
+        "960x720"
+        "1024x600"
+        "1024x768"
+        "1024x800"
+        "1280x720"
+        "1280x800"
+        "1280x960"
+        "1280x1024"
+        "1920x1080"
+    )
+    echo "${res[@]}"
+}
+
 function choose_render_res() {
     local mode="$1"
     local default="$2"
 
-    local res=(
-        "320x240"
-        "640x480"
-        "800x600"
-        "960x720"
-        "1280x960"
-    )
+    local res=($(get_resolutions))
     local i=1
     local item
     local options=()
@@ -639,12 +674,7 @@ function choose_fb_res() {
     local mode="$1"
     local default="$2"
 
-    local res=(
-        "320x240"
-        "640x480"
-        "960x720"
-        "1280x960"
-    )
+    local res=($(get_resolutions))
     local i=1
     local item
     local options=()
@@ -659,6 +689,33 @@ function choose_fb_res() {
 
     default_mode set "$mode" "$choice"
     load_mode_defaults
+}
+
+function user_menu() {
+    local default
+    local options=()
+    local script
+    local i=1
+    while read -r script; do
+        script="${script##*/}"
+        script="${script%.*}"
+        options+=($i "$script")
+        ((i++))
+    done < <(find "$CONFIGDIR/all/runcommand-menu" -type f -name "*.sh" | sort)
+    local default
+    local cmd
+    local choice
+    local ret
+    while true; do
+        cmd=(dialog --default-item "$default" --cancel-label "Back" --menu "Choose option"  22 76 16)
+        choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
+        [[ -z "$choice" ]] && return 0
+        default="$choice"
+        script="runcommand-menu/${options[choice*2-1]}.sh"
+        user_script "$script"
+        ret="$?"
+        [[ "$ret" -eq 1 || "$ret" -eq 2 ]] && return "$ret"
+    done
 }
 
 function switch_fb_res() {
@@ -762,7 +819,7 @@ function retroarch_append_config() {
     # append any NETPLAY configuration
     if [[ "$NETPLAY" -eq 1 ]] && [[ -f "$RETRONETPLAY_CONF" ]]; then
         source "$RETRONETPLAY_CONF"
-        COMMAND+=" -$__netplaymode $__netplayhostip_cfile --port $__netplayport --frames $__netplayframes --nick $__netplaynickname"
+        COMMAND+=" -$__netplaymode $__netplayhostip_cfile --port $__netplayport --nick $__netplaynickname"
     fi
 }
 
@@ -798,7 +855,7 @@ function get_sys_command() {
     if [[ -z "$emulator" ]]; then
         echo "No default emulator found for system $SYSTEM"
         start_joy2key
-        choose_emulator "emu_sys"
+        choose_emulator "emu_sys" "" "--nocancel"
         stop_joy2key
         get_sys_command "$SYSTEM" "$ROM"
         return
@@ -821,15 +878,15 @@ function get_sys_command() {
     COMMAND="$(default_emulator get emu_cmd)"
 
     # replace tokens
-    COMMAND="${COMMAND/\%ROM\%/\"$ROM\"}"
-    COMMAND="${COMMAND/\%BASENAME\%/\"$ROM_BN\"}"
+    COMMAND="${COMMAND//\%ROM\%/\"$ROM\"}"
+    COMMAND="${COMMAND//\%BASENAME\%/\"$ROM_BN\"}"
 
     # special case to get the last 2 folders for quake games for the -game parameter
     # remove everything up to /quake/
     local quake_dir="${ROM##*/quake/}"
     # remove filename
     quake_dir="${quake_dir%/*}"
-    COMMAND="${COMMAND/\%QUAKEDIR\%/\"$quake_dir\"}"
+    COMMAND="${COMMAND//\%QUAKEDIR\%/\"$quake_dir\"}"
 
     # if it starts with CON: it is a console application (so we don't redirect stdout later)
     if [[ "$COMMAND" == CON:* ]]; then
@@ -842,6 +899,13 @@ function get_sys_command() {
     # see https://github.com/RetroPie/RetroPie-Setup/issues/1805
     if [[ -n "$TTY" && "$COMMAND" =~ ^(startx|xinit) ]]; then
         COMMAND+=" -- vt$TTY -keeptty"
+    fi
+
+    # if on RPI and there is no RP-NEWBRCMLIBS file present then use old library names for SDL
+    if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == BCM* && "$COMMAND" =~ $ROOTDIR/[^/]*/[^/]* ]]; then
+        if [[ ! -f "${BASH_REMATCH[0]}/RP-NEWBRCMLIBS" ]]; then
+            COMMAND="SDL_VIDEO_EGL_DRIVER=/opt/vc/lib/libEGL.so SDL_VIDEO_GL_DRIVER=/opt/vc/lib/libGLESv2.so $COMMAND"
+        fi
     fi
 }
 
@@ -883,8 +947,9 @@ function show_launch() {
         if [[ -n "$DISPLAY" ]]; then
             feh -F -N -Z -Y -q "$image" & &>/dev/null
             IMG_PID=$!
+            sleep "$IMAGE_DELAY"
         else
-            fbi -1 -t 2 -noverbose -a "$image" </dev/tty &>/dev/null
+            fbi -1 -t "$IMAGE_DELAY" -noverbose -a "$image" </dev/tty &>/dev/null
         fi
     elif [[ "$DISABLE_MENU" -ne 1 && "$USE_ART" -ne 1 ]]; then
         local launch_name
@@ -903,6 +968,7 @@ function check_menu() {
     # check for key pressed to enter configuration
     IFS= read -s -t 2 -N 1 key </dev/tty
     if [[ -n "$key" ]]; then
+        [[ -n "$IMG_PID" ]] && kill -SIGINT "$IMG_PID"
         if [[ "$HAS_TVS" -eq 1 ]]; then
             get_all_modes
         fi

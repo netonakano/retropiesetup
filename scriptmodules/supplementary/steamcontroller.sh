@@ -12,7 +12,9 @@
 rp_module_id="steamcontroller"
 rp_module_desc="Standalone Steam Controller Driver"
 rp_module_help="Steam Controller Driver from https://github.com/ynsta/steamcontroller"
+rp_module_licence="MIT https://raw.githubusercontent.com/ynsta/steamcontroller/master/LICENSE"
 rp_module_section="driver"
+rp_module_flags="noinstclean"
 
 function depends_steamcontroller() {
     getDepends virtualenv python3-dev
@@ -73,7 +75,7 @@ function gui_steamcontroller() {
     while true; do
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
-            case $choice in
+            case "$choice" in
                 1)
                     enable_steamcontroller xbox
                     ;;

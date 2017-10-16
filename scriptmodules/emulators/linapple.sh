@@ -11,7 +11,8 @@
 
 rp_module_id="linapple"
 rp_module_desc="Apple 2 emulator LinApple"
-rp_module_help="ROM Extensions: .dsk\n\nCopy your Apple 2 roms to $romdir/apple2"
+rp_module_help="ROM Extensions: .dsk\n\nCopy your Apple 2 games to $romdir/apple2"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/dabonetn/linapple-pie/master/LICENSE"
 rp_module_section="opt"
 rp_module_flags="dispmanx !mali"
 
@@ -48,11 +49,14 @@ function configure_linapple() {
 
     moveConfigDir "$home/.linapple" "$md_conf_root/apple2"
 
-    # copy default config/disk if user doesn't have them installed
-    local file
-    for file in Master.dsk linapple.conf; do
-        copyDefaultConfig "$file" "$md_conf_root/apple2/$file"
-    done
+    if [[ "$md_mode" == "install" ]]; then
+        # copy default config/disk if user doesn't have them installed
+        local file
+        for file in Master.dsk linapple.conf; do
+            copyDefaultConfig "$file" "$md_conf_root/apple2/$file"
+        done
+    fi
 
-    addSystem 1 "$md_id" "apple2" "pushd $romdir/apple2; $md_inst/linapple -1 %ROM%; popd"
+    addEmulator 1 "$md_id" "apple2" "pushd $romdir/apple2; $md_inst/linapple -1 %ROM%; popd"
+    addSystem "apple2"
 }

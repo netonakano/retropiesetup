@@ -12,6 +12,7 @@
 rp_module_id="reicast"
 rp_module_desc="Dreamcast emulator Reicast"
 rp_module_help="ROM Extensions: .cdi .gdi\n\nCopy your Dremcast roms to $romdir/dreamcast\n\nCopy the required BIOS files dc_boot.bin and dc_flash.bin to $biosdir"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/reicast/reicast-emulator/master/LICENSE"
 rp_module_section="opt"
 rp_module_flags="!armv6 !mali"
 
@@ -22,7 +23,7 @@ function depends_reicast() {
 
 function sources_reicast() {
     if isPlatform "x11"; then
-        gitPullOrClone "$md_build" https://github.com/reicast/reicast-emulator.git fix/softrend-fugly-casts
+        gitPullOrClone "$md_build" https://github.com/reicast/reicast-emulator.git
     else
         gitPullOrClone "$md_build" https://github.com/RetroPie/reicast-emulator.git retropie
     fi
@@ -75,18 +76,25 @@ function configure_reicast() {
 
     chown -R $user:$user "$md_conf_root/dreamcast"
 
-    # Link to file that does not exist as this results in the Dreamcast System Manager launching (as if one turned on the Dreamcast without a disc inserted)
-    # This is required to fix broken / corrupted VMU files.
-    ln -sf fileThatDoesNotExist "$home/RetroPie/roms/dreamcast/systemManager.cdi"
+    cat > "$romdir/dreamcast/+Start Reicast.sh" << _EOF_
+#!/bin/bash
+$md_inst/bin/reicast.sh
+_EOF_
+    chmod a+x "$romdir/dreamcast/+Start Reicast.sh"
+    chown $user:$user "$romdir/dreamcast/+Start Reicast.sh"
+
+    # remove old systemManager.cdi symlink
+    rm -f "$romdir/dreamcast/systemManager.cdi"
 
     # add system
     # possible audio backends: alsa, oss, omx
     if isPlatform "rpi"; then
-        addSystem 1 "${md_id}-audio-omx" "dreamcast" "CON:$md_inst/bin/reicast.sh omx %ROM%"
-        addSystem 0 "${md_id}-audio-oss" "dreamcast" "CON:$md_inst/bin/reicast.sh oss %ROM%"
+        addEmulator 1 "${md_id}-audio-omx" "dreamcast" "CON:$md_inst/bin/reicast.sh omx %ROM%"
+        addEmulator 0 "${md_id}-audio-oss" "dreamcast" "CON:$md_inst/bin/reicast.sh oss %ROM%"
     else
-        addSystem 1 "$md_id" "dreamcast" "CON:$md_inst/bin/reicast.sh oss %ROM%"
+        addEmulator 1 "$md_id" "dreamcast" "CON:$md_inst/bin/reicast.sh oss %ROM%"
     fi
+    addSystem "dreamcast"
 
     addAutoConf reicast_input 1
 }

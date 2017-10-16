@@ -12,6 +12,7 @@
 rp_module_id="lr-mame2014"
 rp_module_desc="Arcade emu - MAME 0.159 port for libretro"
 rp_module_help="ROM Extension: .zip\n\nCopy your MAME roms to either $romdir/mame-libretro or\n$romdir/arcade"
+rp_module_licence="NONCOM https://raw.githubusercontent.com/libretro/mame2014-libretro/master/docs/license.txt"
 rp_module_section="exp"
 
 function sources_lr-mame2014() {
@@ -19,9 +20,9 @@ function sources_lr-mame2014() {
 }
 
 function build_lr-mame2014() {
-    rpSwap on 750
+    rpSwap on 1200
     make clean
-    make "${params[@]}"
+    make
     rpSwap off
     md_ret_require="$md_build/mame2014_libretro.so"
 }
@@ -29,16 +30,16 @@ function build_lr-mame2014() {
 function install_lr-mame2014() {
     md_ret_files=(
         'mame2014_libretro.so'
-        'README.md'
+        'docs/README-original.md'
     )
 }
 
 function configure_lr-mame2014() {
-    mkRomDir "arcade"
-    mkRomDir "mame-libretro"
-    ensureSystemretroconfig "arcade"
-    ensureSystemretroconfig "mame-libretro"
-
-    addSystem 0 "$md_id" "arcade" "$md_inst/mame2014_libretro.so"
-    addSystem 0 "$md_id" "mame-libretro arcade mame" "$md_inst/mame2014_libretro.so"
+    local system
+    for system in arcade mame-libretro; do
+        mkRomDir "$system"
+        ensureSystemretroconfig "$system"
+        addEmulator 0 "$md_id" "$system" "$md_inst/mame2014_libretro.so"
+        addSystem "$system"
+    done
 }

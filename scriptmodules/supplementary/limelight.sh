@@ -11,6 +11,7 @@
 
 rp_module_id="limelight"
 rp_module_desc="Limelight Game Streaming"
+rp_module_licence="GPL3 https://raw.githubusercontent.com/irtimmer/moonlight-embedded/master/LICENSE"
 rp_module_section="exp"
 rp_module_flags="!x11"
 
@@ -50,7 +51,8 @@ function configure_limelight() {
     mkRomDir "limelight"
 
     # Add System to es_system.cfg
-    addSystem 1 "$md_id" "limelight" "%ROM%" "Limelight Game Streaming" ".sh .SH"
+    addEmulator 1 "$md_id" "limelight" "%ROM%"
+    addSystem "limelight" "Limelight Game Streaming" ".sh"
 
     [[ "$md_mode" == "remove" ]] && return
 

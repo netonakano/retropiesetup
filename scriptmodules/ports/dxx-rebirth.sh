@@ -11,6 +11,7 @@
 
 rp_module_id="dxx-rebirth"
 rp_module_desc="DXX-Rebirth (Descent & Descent 2) build from source"
+rp_module_licence="NONCOM https://raw.githubusercontent.com/dxx-rebirth/dxx-rebirth/master/COPYING.txt"
 rp_module_section="opt"
 rp_module_flags="!mali"
 
@@ -72,9 +73,7 @@ function game_data_dxx-rebirth() {
 
     # Download / unpack / install Descent shareware files
     if [[ ! -f "$romdir/ports/descent1/descent.hog" ]]; then
-        wget -nv -O descent-pc-shareware.zip "$D1X_SHARE_URL"
-        unzip -o descent-pc-shareware.zip -d "$romdir/ports/descent1"
-        rm descent-pc-shareware.zip
+        downloadAndExtract "$D1X_SHARE_URL" "$romdir/ports/descent1"
     fi
 
     # High Res Texture Pack
@@ -89,9 +88,7 @@ function game_data_dxx-rebirth() {
 
     # Download / unpack / install Descent 2 shareware files
     if [[ ! -f "$romdir/ports/descent2/D2DEMO.HOG" ]]; then
-        wget -nv "$D2X_SHARE_URL"
-        unzip -o descent2-pc-demo.zip -d "$romdir/ports/descent2"
-        rm descent2-pc-demo.zip
+        downloadAndExtract "$D2X_SHARE_URL" "$romdir/ports/descent2"
     fi
 
     # Ogg Sound Replacement (Roland Sound Canvas SC-55 MIDI)
