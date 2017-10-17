@@ -12,6 +12,7 @@
 rp_module_id="mame0176b-rPi"
 rp_module_desc="MAME v0.176b-rPi"
 rp_module_help="ROM Extension: .zip\n\nCopy your MAME v0.176b-rPi roms to either $romdir/mame-mame0176b-rPi or\n$romdir/arcade"
+rp_module_licence="GPL2 https://raw.githubusercontent.com/mamedev/mame/master/LICENSE.md"
 rp_module_section="exp"
 rp_module_flags="!x11 !mali"
 
@@ -23,24 +24,35 @@ function install_bin_mame0176b-rPi() {
     local mame="mame0176b-rPi"
 
     # Download and unzip the binary file 
-    wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
-    unzip -n "$md_inst/$mame.zip" -d "$md_inst"
-    rm "$md_inst/$mame.zip"
+    # TODO: Test downloadAndExtract
+    downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" "$md_inst"
+    
+    # TODO: Check for error and exit
+    # fatalError "Unable to download and extract."
+    
+    # Old download and extract code
+    #wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
+    #unzip -n "$md_inst/$mame.zip" -d "$md_inst"
+    #rm "$md_inst/$mame.zip"
     
     # The zip file gets unzipped into a subdirectory, so we need to move that back out
-    mv "$md_inst/$mame"/* "$md_inst" 
-    rmdir "$md_inst/$mame" 
+    #mv "$md_inst/$mame"/* "$md_inst" 
+    #rmdir "$md_inst/$mame" 
+    # End: Old download and extract code
     
     # This will give everyone permission to read the directories where MAME is
     find "$md_inst" -type d -exec chmod a+rx {} \;
 }
 
-#function remove_mame0176b-rPi() {
+function remove_mame0176b-rPi() {
     # Optionally you can remove configureation directories here
-    #local system="mame-mame0176b-rPi"
-    #rm -rf "$md_conf_root/$system/"
-    #rm /home/pi/.mame
-#}
+    local system="mame-mame0176b-rPi"
+    rmDirExists "$md_inst"
+    rmDirExists "$md_conf_root/$system/"
+    rm /home/pi/.mame
+    delEmulator "$md_id" "arcade"
+    delEmulator "$md_id" "$system"
+}
 
 function configure_mame0176b-rPi() {
     local system="mame-mame0176b-rPi"
@@ -53,8 +65,10 @@ function configure_mame0176b-rPi() {
         #mkdir -p "$md_conf_root/$system/"{hi,memcard}
         mkdir -p "$md_conf_root/$system/"{cfg,nvram,inp,sta,snap,diff,comments}
         
-        # Make a symbolic link for the MAME ini directory
-        ln -s $md_conf_root/$system/ /home/pi/.mame
+        if [[ ! -f "/home/pi/.mame" ]]; then
+            # Make a symbolic link for the MAME ini directory
+            ln -s $md_conf_root/$system/ /home/pi/.mame
+        fi
 
         # Create a new INI file
         local config="$(mktemp)"
@@ -82,6 +96,9 @@ function configure_mame0176b-rPi() {
         chmod a+r "$md_conf_root/$system/mame.ini"
     fi
 
-    addSystem 0 "$md_id" "arcade" "$md_inst/mame %BASENAME%" "Multiple Arcade Machine Emulator" ".zip .ZIP"
-    addSystem 1 "$md_id" "$system arcade mame" "$md_inst/mame %BASENAME%" "Multiple Arcade Machine Emulator" ".zip .ZIP"
+    addEmulator 0 "$md_id" "arcade" "$md_inst/mame %BASENAME%"
+    addEmulator 1 "$md_id" "$system" "$md_inst/mame %BASENAME%"
+    
+    addSystem "arcade"
+    addSystem "$system"
 }
