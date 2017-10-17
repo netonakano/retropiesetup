@@ -34,11 +34,11 @@ function install_bin_mame0176b-rPi() {
     #wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
     #unzip -n "$md_inst/$mame.zip" -d "$md_inst"
     #rm "$md_inst/$mame.zip"
+    # End: Old download and extract code
     
     # The zip file gets unzipped into a subdirectory, so we need to move that back out
-    #mv "$md_inst/$mame"/* "$md_inst" 
-    #rmdir "$md_inst/$mame" 
-    # End: Old download and extract code
+    mv "$md_inst/$mame"/* "$md_inst" 
+    rmdir "$md_inst/$mame" 
     
     # This will give everyone permission to read the directories where MAME is
     find "$md_inst" -type d -exec chmod a+rx {} \;
