@@ -99,6 +99,6 @@ function configure_mame0176b-rPi() {
     addEmulator 0 "$md_id" "arcade" "$md_inst/mame %BASENAME%"
     addEmulator 1 "$md_id" "$system" "$md_inst/mame %BASENAME%"
     
-    addSystem "arcade"
-    addSystem "$system"
+    addSystem "arcade" "$rp_module_desc" ".zip .ZIP"
+    addSystem "$system" "$rp_module_desc" ".zip .ZIP"
 }
