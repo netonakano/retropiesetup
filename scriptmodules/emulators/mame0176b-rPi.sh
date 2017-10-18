@@ -16,6 +16,8 @@ rp_module_licence="GPL2 https://raw.githubusercontent.com/mamedev/mame/master/LI
 rp_module_section="exp"
 rp_module_flags="!x11 !mali"
 
+debug=0
+
 function depends_mame0176b-rPi() {
     getDepends libasound2-dev libsdl1.2-dev libraspberrypi-dev qt5-default libsdl2-ttf-2.0-0
 }
@@ -23,18 +25,22 @@ function depends_mame0176b-rPi() {
 function install_bin_mame0176b-rPi() {
     local mame="mame0176b-rPi"
 
-    # Download and unzip the binary file 
-    # TODO: Test downloadAndExtract
-    downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" "$md_inst"
+    if [[ "$debug" -eq "1" ]]; then
+        unzip -n "/home/pi/Downloads/$mame.zip" -d "$md_inst"
+    else
+        # Download and unzip the binary file 
+        # TODO: Test downloadAndExtract
+        # downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" "$md_inst"
     
-    # TODO: Check for error and exit
-    # fatalError "Unable to download and extract."
+        # TODO: Check for error and exit
+        # fatalError "Unable to download and extract."
     
-    # Old download and extract code
-    wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
-    unzip -n "$md_inst/$mame.zip" -d "$md_inst"
-    #rm "$md_inst/$mame.zip"
-    # End: Old download and extract code
+        # Old download and extract code
+        wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
+        unzip -n "$md_inst/$mame.zip" -d "$md_inst"
+        rm "$md_inst/$mame.zip"
+        # End: Old download and extract code
+    fi
     
     # The zip file gets unzipped into a subdirectory, so we need to move that back out
     mv "$md_inst/$mame"/* "$md_inst" 
@@ -99,6 +105,6 @@ function configure_mame0176b-rPi() {
     addEmulator 0 "$md_id" "arcade" "$md_inst/mame %BASENAME%"
     addEmulator 1 "$md_id" "$system" "$md_inst/mame %BASENAME%"
     
-    addSystem "arcade" "$rp_module_desc" ".zip .ZIP"
-    addSystem "$system" "$rp_module_desc" ".zip .ZIP"
+    addSystem "arcade" "$rp_module_desc" ".zip"
+    addSystem "$system" "$rp_module_desc" ".zip"
 }
