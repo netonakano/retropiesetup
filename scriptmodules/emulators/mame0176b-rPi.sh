@@ -31,8 +31,8 @@ function install_bin_mame0176b-rPi() {
     # fatalError "Unable to download and extract."
     
     # Old download and extract code
-    #wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
-    #unzip -n "$md_inst/$mame.zip" -d "$md_inst"
+    wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0176b-rPi.zip" -O "$md_inst/$mame.zip"
+    unzip -n "$md_inst/$mame.zip" -d "$md_inst"
     #rm "$md_inst/$mame.zip"
     # End: Old download and extract code
     
