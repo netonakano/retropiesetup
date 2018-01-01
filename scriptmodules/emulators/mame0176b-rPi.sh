@@ -28,12 +28,19 @@
 #   Select "mame0176b-rPi"
 #   Select "B" to Install from binary
 # 
-# then exit
+# Then exit the RetroPie setup program.
+# Finally, either restart Emulation Station or reboot the machine.
 # 
 # You can use MAME v0.180 roms for this installation. Place the ROMs in the following directory:
 # 
 #   /home/pi/RetroPie/roms/mame-mame0176b-rPi
+#
+# On a Raspberry Pi 3 the games can still run rather slowly. When launching,
+# hit any button to get into the emulator configuration menu and do the following:
 # 
+#   Hit "4" to Select video mode for mame0176b-rPi
+#   Select CEA-1 (640x480 @ 60Hz 4:3, clock:25MHz progressive
+#
 # TODO: This script does not do any configuration of the existing theme. MAME will show up as its own entry but without any graphics.
 #
 
