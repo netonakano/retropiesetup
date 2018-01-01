@@ -9,6 +9,34 @@
 # at https://raw.githubusercontent.com/RetroPie/RetroPie-Setup/master/LICENSE.md
 #
 
+#
+# Installation Instructions
+# =========================
+# 
+# SSH into your Raspberry Pi
+# Run the following commands:
+# 
+#   cd ~/RetroPie-Setup/scriptmodules/emulators/
+#   wget https://raw.githubusercontent.com/GeorgeMcMullen/RetroPie-Setup/master/scriptmodules/emulators/mame0176b-rPi.sh
+#   cd
+#   sudo ~/RetroPie-Setup/retropie_setup.sh
+# 
+# In the RetroPie setup program do the following:
+# 
+#   Select "P" to Manage packages
+#   Select "e" to Manage experimental packages
+#   Select "mame0176b-rPi"
+#   Select "B" to Install from binary
+# 
+# then exit
+# 
+# You can use MAME v0.180 roms for this installation. Place the ROMs in the following directory:
+# 
+#   /home/pi/RetroPie/roms/mame-mame0176b-rPi
+# 
+# TODO: This script does not do any configuration of the existing theme. MAME will show up as its own entry but without any graphics.
+#
+
 rp_module_id="mame0176b-rPi"
 rp_module_desc="MAME v0.176b-rPi"
 rp_module_help="ROM Extension: .zip\n\nCopy your MAME v0.176b-rPi roms to either $romdir/mame-mame0176b-rPi or\n$romdir/arcade"
