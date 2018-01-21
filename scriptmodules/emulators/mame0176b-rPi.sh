@@ -54,7 +54,7 @@ rp_module_flags="!x11 !mali"
 debug=0
 
 function depends_mame0176b-rPi() {
-    getDepends libasound2-dev libsdl1.2-dev libraspberrypi-dev qt5-default libsdl2-ttf-2.0-0
+    getDepends libasound2-dev libsdl1.2-dev libraspberrypi-dev qt5-default libsdl2-ttf-2.0-0 libfontconfig1-dev
 }
 
 function install_bin_mame0176b-rPi() {
