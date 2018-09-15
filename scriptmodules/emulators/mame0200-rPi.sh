@@ -65,13 +65,13 @@ function install_bin_mame0200-rPi() {
     else
         # Download and unzip the binary file 
         # TODO: Test downloadAndExtract
-        # downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0200-rPi.zip" "$md_inst"
+        # downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0200/mame0200-rPi.zip" "$md_inst"
     
         # TODO: Check for error and exit
         # fatalError "Unable to download and extract."
     
         # Old download and extract code
-        wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0176/mame0200-rPi.zip" -O "$md_inst/$mame.zip"
+        wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0200/mame0200-rPi.zip" -O "$md_inst/$mame.zip"
         unzip -n "$md_inst/$mame.zip" -d "$md_inst"
         rm "$md_inst/$mame.zip"
         # End: Old download and extract code
