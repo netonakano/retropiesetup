@@ -106,7 +106,7 @@ function configure_mame0200b-rPi() {
         #mkdir -p "$md_conf_root/$system/"{hi,memcard}
         mkdir -p "$md_conf_root/$system/"{cfg,nvram,inp,sta,snap,diff,comments}
         
-        if [[ ! -f "/home/pi/.mame" ]]; then
+        if [[ ! -e "/home/pi/.mame" ]]; then
             # Make a symbolic link for the MAME ini directory
             ln -s $md_conf_root/$system/ /home/pi/.mame
         fi
