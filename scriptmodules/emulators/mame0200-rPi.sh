@@ -17,7 +17,7 @@
 # Run the following commands:
 # 
 #   cd ~/RetroPie-Setup/scriptmodules/emulators/
-#   wget https://raw.githubusercontent.com/GeorgeMcMullen/RetroPie-Setup/master/scriptmodules/emulators/mame0200-rPi.sh
+#   wget https://raw.githubusercontent.com/GeorgeMcMullen/RetroPie-Setup/master/scriptmodules/emulators/mame0200b-rPi.sh
 #   cd
 #   sudo ~/RetroPie-Setup/retropie_setup.sh
 # 
@@ -25,7 +25,7 @@
 # 
 #   Select "P" to Manage packages
 #   Select "e" to Manage experimental packages
-#   Select "mame0200-rPi"
+#   Select "mame0200b-rPi"
 #   Select "B" to Install from binary
 # 
 # Then exit the RetroPie setup program.
@@ -33,45 +33,45 @@
 # 
 # Place the ROMs in the following directory:
 # 
-#   /home/pi/RetroPie/roms/mame-mame0200-rPi
+#   /home/pi/RetroPie/roms/mame-mame0200b-rPi
 #
 # On a Raspberry Pi 3 the games can still run rather slowly. When launching,
 # hit any button to get into the emulator configuration menu and do the following:
 # 
-#   Hit "4" to Select video mode for mame0200-rPi
+#   Hit "4" to Select video mode for mame0200b-rPi
 #   Select CEA-1 (640x480 @ 60Hz 4:3, clock:25MHz progressive
 #
 # TODO: This script does not do any configuration of the existing theme. MAME will show up as its own entry but without any graphics.
 #
 
-rp_module_id="mame0200-rPi"
-rp_module_desc="MAME v0.200-rPi"
-rp_module_help="ROM Extension: .zip\n\nCopy your MAME v0.200-rPi roms to either $romdir/mame-mame0200-rPi or\n$romdir/arcade"
+rp_module_id="mame0200b-rPi"
+rp_module_desc="MAME v0.200b-rPi"
+rp_module_help="ROM Extension: .zip\n\nCopy your MAME v0.200b-rPi roms to either $romdir/mame-mame0200b-rPi or\n$romdir/arcade"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/mamedev/mame/master/LICENSE.md"
 rp_module_section="exp"
 rp_module_flags="!x11 !mali"
 
 debug=0
 
-function depends_mame0200-rPi() {
+function depends_mame0200b-rPi() {
     getDepends libsdl2-ttf-2.0-0
 }
 
-function install_bin_mame0200-rPi() {
-    local mame="mame0200-rPi"
+function install_bin_mame0200b-rPi() {
+    local mame="mame0200b-rPi"
 
     if [[ "$debug" -eq "1" ]]; then
         unzip -n "/home/pi/Downloads/$mame.zip" -d "$md_inst"
     else
         # Download and unzip the binary file 
         # TODO: Test downloadAndExtract
-        # downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0200/mame0200-rPi.zip" "$md_inst"
+        # downloadAndExtract "https://github.com/GeorgeMcMullen/mame/releases/download/mame0200/mame0200b-rPi.zip" "$md_inst"
     
         # TODO: Check for error and exit
         # fatalError "Unable to download and extract."
     
         # Old download and extract code
-        wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0200/mame0200-rPi.zip" -O "$md_inst/$mame.zip"
+        wget "https://github.com/GeorgeMcMullen/mame/releases/download/mame0200/mame0200b-rPi.zip" -O "$md_inst/$mame.zip"
         unzip -n "$md_inst/$mame.zip" -d "$md_inst"
         rm "$md_inst/$mame.zip"
         # End: Old download and extract code
@@ -85,9 +85,9 @@ function install_bin_mame0200-rPi() {
     find "$md_inst" -type d -exec chmod a+rx {} \;
 }
 
-function remove_mame0200-rPi() {
+function remove_mame0200b-rPi() {
     # Optionally you can remove configureation directories here
-    local system="mame-mame0200-rPi"
+    local system="mame-mame0200b-rPi"
     rmDirExists "$md_inst"
     rmDirExists "$md_conf_root/$system/"
     rm /home/pi/.mame
@@ -95,8 +95,8 @@ function remove_mame0200-rPi() {
     delEmulator "$md_id" "$system"
 }
 
-function configure_mame0200-rPi() {
-    local system="mame-mame0200-rPi"
+function configure_mame0200b-rPi() {
+    local system="mame-mame0200b-rPi"
     mkRomDir "arcade"
     mkRomDir "$system"
     mkRomDir "$system/artwork"
