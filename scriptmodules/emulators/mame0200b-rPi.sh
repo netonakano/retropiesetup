@@ -167,7 +167,7 @@ function _add_system_mame0200b-rPi() {
     local path="$3"
     local extension="$4"
     local command="$5"
-    local platform="$6"
+    local platform="arcade"
     local theme="mame"
 
     local conf="/etc/emulationstation/es_systems.cfg"
