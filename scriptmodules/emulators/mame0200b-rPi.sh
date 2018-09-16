@@ -53,10 +53,14 @@ rp_module_flags="!x11 !mali"
 
 debug=0
 
+## @fn depends_mame0200b-rPi()
+## @brief Installs the required dependencies
 function depends_mame0200b-rPi() {
     getDepends libsdl2-ttf-2.0-0
 }
 
+## @fn install_bin_mame0200b-rPi()
+## @brief Installs the mame0200b-rPi binary by downloading and extracting it
 function install_bin_mame0200b-rPi() {
     local mame="mame0200b-rPi"
 
@@ -85,6 +89,8 @@ function install_bin_mame0200b-rPi() {
     find "$md_inst" -type d -exec chmod a+rx {} \;
 }
 
+## @fn remove_mame0200b-rPi()
+## @brief Uninstalls mame0200-rPi by deleting the binary and configuration directories
 function remove_mame0200b-rPi() {
     # Optionally you can remove configureation directories here
     local system="mame-mame0200b-rPi"
@@ -95,6 +101,8 @@ function remove_mame0200b-rPi() {
     delEmulator "$md_id" "$system"
 }
 
+## @fn configure_mame0200b-rPi()
+## @brief Creates the rom directories and configuration files for mame0200-rPi
 function configure_mame0200b-rPi() {
     local system="mame-mame0200b-rPi"
     mkRomDir "arcade"
@@ -142,4 +150,65 @@ function configure_mame0200b-rPi() {
     
     addSystem "arcade" "$rp_module_desc" ".zip"
     addSystem "$system" "$rp_module_desc" ".zip"
+}
+
+## @fn _add_system_mame0200b-rPi()
+## @param fullname full name of system
+## @param name short name of system
+## @param path rom path
+## @param extension file extensions to show
+## @param command command to run
+## @param platform name of platform (used by es for scraping)
+## @param theme name of theme to use
+## @brief Helper function for setESSystem() that adds a system entry for Emulation Station with the Mame theme.
+function _add_system_mame0200b-rPi() {
+    local fullname="$1"
+    local name="$2"
+    local path="$3"
+    local extension="$4"
+    local command="$5"
+    local platform="$6"
+    local theme="mame"
+
+    local conf="/etc/emulationstation/es_systems.cfg"
+    mkdir -p "/etc/emulationstation"
+    if [[ ! -f "$conf" ]]; then
+        echo "<systemList />" >"$conf"
+    fi
+
+    cp "$conf" "$conf.bak"
+    if [[ $(xmlstarlet sel -t -v "count(/systemList/system[name='$name'])" "$conf") -eq 0 ]]; then
+        xmlstarlet ed -L -s "/systemList" -t elem -n "system" -v "" \
+            -s "/systemList/system[last()]" -t elem -n "name" -v "$name" \
+            -s "/systemList/system[last()]" -t elem -n "fullname" -v "$fullname" \
+            -s "/systemList/system[last()]" -t elem -n "path" -v "$path" \
+            -s "/systemList/system[last()]" -t elem -n "extension" -v "$extension" \
+            -s "/systemList/system[last()]" -t elem -n "command" -v "$command" \
+            -s "/systemList/system[last()]" -t elem -n "platform" -v "$platform" \
+            -s "/systemList/system[last()]" -t elem -n "theme" -v "$theme" \
+            "$conf"
+    else
+        xmlstarlet ed -L \
+            -u "/systemList/system[name='$name']/fullname" -v "$fullname" \
+            -u "/systemList/system[name='$name']/path" -v "$path" \
+            -u "/systemList/system[name='$name']/extension" -v "$extension" \
+            -u "/systemList/system[name='$name']/command" -v "$command" \
+            -u "/systemList/system[name='$name']/platform" -v "$platform" \
+            -u "/systemList/system[name='$name']/theme" -v "$theme" \
+            "$conf"
+    fi
+
+    _sort_systems_emulationstation "name"
+}
+
+## @fn _del_system_mame0200b-rPi()
+## @param system system to delete
+## @brief Helper function for delSystem() that deletes a system
+## @details deletes mam0200b-rPi from all frontends.
+function _del_system_mame0200b-rPi() {
+    local fullname="$1"
+    local name="$2"
+    if [[ -f /etc/emulationstation/es_systems.cfg ]]; then
+        xmlstarlet ed -L -P -d "/systemList/system[name='$name']" /etc/emulationstation/es_systems.cfg
+    fi
 }
