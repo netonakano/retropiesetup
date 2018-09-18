@@ -123,8 +123,8 @@ function _add_rom_emulationstation() {
 
 function depends_emulationstation() {
     local depends=(
-        libboost-locale-dev libboost-system-dev libboost-filesystem-dev
-        libboost-date-time-dev libfreeimage-dev libfreetype6-dev libeigen3-dev
+        libboost-system-dev libboost-filesystem-dev
+        libboost-date-time-dev libfreeimage-dev libfreetype6-dev
         libcurl4-openssl-dev libasound2-dev cmake libsdl2-dev libsm-dev
         libvlc-dev libvlccore-dev vlc
     )
@@ -169,13 +169,17 @@ function init_input_emulationstation() {
         echo "<inputList />" >"$es_config"
     fi
 
-    # add our inputconfiguration.sh inputAction if it is missing
+    # add/update our inputconfiguration.sh inputAction
     if [[ $(xmlstarlet sel -t -v "count(/inputList/inputAction[@type='onfinish'])" "$es_config") -eq 0 ]]; then
         xmlstarlet ed -L -S \
             -s "/inputList" -t elem -n "inputActionTMP" -v "" \
             -s "//inputActionTMP" -t attr -n "type" -v "onfinish" \
             -s "//inputActionTMP" -t elem -n "command" -v "$md_inst/scripts/inputconfiguration.sh" \
             -r "//inputActionTMP" -v "inputAction" "$es_config"
+    else
+        xmlstarlet ed -L \
+            -u "/inputList/inputAction[@type='onfinish']/command" -v "$md_inst/scripts/inputconfiguration.sh" \
+            "$es_config"
     fi
 
     chown $user:$user "$es_config"
@@ -194,6 +198,11 @@ function install_launch_emulationstation() {
 
 if [[ \$(id -u) -eq 0 ]]; then
     echo "emulationstation should not be run as root. If you used 'sudo emulationstation' please run without sudo."
+    exit 1
+fi
+
+if [[ -d "/sys/module/vc4" ]]; then
+    echo -e "ERROR: You have the experimental desktop GL driver enabled. This is NOT compatible with RetroPie, and Emulation Station as well as emulators will fail to launch.\\n\\nPlease disable the experimental desktop GL driver from the raspi-config 'Advanced Options' menu."
     exit 1
 fi
 

@@ -204,6 +204,10 @@ function getDepends() {
     for required in $@; do
 
         # workaround for different package names on osmc / xbian
+        if [[ "$required" == "libraspberrypi-bin" ]]; then
+            isPlatform "osmc" && required="rbp-userland-osmc"
+            isPlatform "xbian" && required="xbian-package-firmware"
+        fi
         if [[ "$required" == "libraspberrypi-dev" ]]; then
             isPlatform "osmc" && required="rbp-userland-dev-osmc"
             isPlatform "xbian" && required="xbian-package-firmware"
@@ -331,12 +335,14 @@ function rpSwap() {
 ## @param dest destination directory
 ## @param repo repository to clone or pull from
 ## @param branch branch to clone or pull from (optional)
+## @param commit specific commit to checkout (optional - requires branch to be set)
 ## @brief Git clones or pulls a repository.
 function gitPullOrClone() {
     local dir="$1"
     local repo="$2"
     local branch="$3"
     [[ -z "$branch" ]] && branch="master"
+    local commit="$4"
 
     if [[ -d "$dir/.git" ]]; then
         pushd "$dir" > /dev/null
@@ -345,12 +351,16 @@ function gitPullOrClone() {
         popd > /dev/null
     else
         local git="git clone --recursive"
-        if [[ "$__persistent_repos" -ne 1 && "$repo" == *github* ]]; then
+        if [[ "$__persistent_repos" -ne 1 && "$repo" == *github* && -z "$commit" ]]; then
             git+=" --depth 1"
         fi
         [[ "$branch" != "master" ]] && git+=" --branch $branch"
         echo "$git \"$repo\" \"$dir\""
         runCmd $git "$repo" "$dir"
+    fi
+    if [[ "$commit" ]]; then
+        echo "Winding back $repo->$branch to commit: #$commit"
+        runCmd git -C "$dir" checkout $commit
     fi
 }
 
@@ -464,7 +474,7 @@ function moveConfigFile() {
 ## @brief Compares two files using diff.
 ## @retval 0 if the files were the same
 ## @retval 1 if they were not
-## @retval >1 an error occured
+## @retval >1 an error occurred
 function diffFiles() {
     diff -q "$1" "$2" >/dev/null
     return $?
@@ -898,14 +908,10 @@ function applyPatch() {
     local patch="$1"
     local patch_applied="${patch##*/}.applied"
 
-    # patch is in stdin
-    if [[ ! -t 0 ]]; then
-        cat >"$patch"
-    fi
-
     if [[ ! -f "$patch_applied" ]]; then
         if patch -f -p1 <"$patch"; then
             touch "$patch_applied"
+            printMsgs "console" "Successfully applied patch: $patch"
         else
             md_ret_errors+=("$md_id patch $patch failed to apply")
             return 1
@@ -943,7 +949,7 @@ function downloadAndExtract() {
         xz)
             cmd+=(-J)
             ;;
-        zip)
+        exe|zip)
             is_tar=0
             local tmp="$(mktemp -d)"
             local file="${url##*/}"
@@ -954,6 +960,7 @@ function downloadAndExtract() {
     esac
 
     if [[ "$is_tar" -eq 1 ]]; then
+        mkdir -p "$dest"
         cmd+=(-C "$dest")
         [[ -n "$opts" ]] && cmd+=(--strip-components "$opts")
 
@@ -974,6 +981,7 @@ function downloadAndExtract() {
 ## were not set to use the dispmanx SDL1 backend would just show in a small
 ## area of the screen.
 function ensureFBMode() {
+    [[ ! -f /etc/fb.modes ]] && return
     local res_x="$1"
     local res_y="$2"
     local res="${res_x}x${res_y}"
@@ -1142,8 +1150,6 @@ function delSystem() {
 ## @brief Adds a port to the emulationstation ports menu.
 ## @details Adds an emulators.cfg entry as with addSystem but also creates a launch script in `$datadir/ports/$name.sh`.
 ##
-## Can optionally take a script via stdin to use instead of the default launch script.
-##
 ## Can also optionally take a game parameter which can be used to create multiple launch
 ## scripts for different games using the same engine - eg for quake
 ##
@@ -1159,36 +1165,34 @@ function addPort() {
     local cmd="$4"
     local game="$5"
 
-    mkUserDir "$romdir/ports"
-
     # move configurations from old ports location
     if [[ -d "$configdir/$port" ]]; then
         mv "$configdir/$port" "$md_conf_root/"
     fi
 
-    if [[ -t 0 ]]; then
-        cat >"$file" << _EOF_
-#!/bin/bash
-"$rootdir/supplementary/runcommand/runcommand.sh" 0 _PORT_ "$port" "$game"
-_EOF_
-    else
-        cat >"$file"
-    fi
-
-    chown $user:$user "$file"
-    chmod +x "$file"
-
     # remove the ports launch script if in remove mode
     if [[ "$md_mode" == "remove" ]]; then
         rm -f "$file"
+        delEmulator "$id" "$port"
         # if there are no more port launch scripts we can remove ports from emulation station
         if [[ "$(find "$romdir/ports" -maxdepth 1 -name "*.sh" | wc -l)" -eq 0 ]]; then
             delSystem "$id" "ports"
         fi
-    else
-        [[ -n "$cmd" ]] && addEmulator 1 "$id" "$port" "$cmd"
-        addSystem "ports"
+        return
     fi
+
+    mkUserDir "$romdir/ports"
+
+    cat >"$file" << _EOF_
+#!/bin/bash
+"$rootdir/supplementary/runcommand/runcommand.sh" 0 _PORT_ "$port" "$game"
+_EOF_
+
+    chown $user:$user "$file"
+    chmod +x "$file"
+
+    [[ -n "$cmd" ]] && addEmulator 1 "$id" "$port" "$cmd"
+    addSystem "ports"
 }
 
 ## @fn addEmulator()
@@ -1280,4 +1284,24 @@ function delEmulator() {
             "$function" "$fullname" "$system"
         done
     fi
+}
+
+## @fn patchVendorGraphics()
+## @param filename file to patch
+## @details replace declared dependencies of old vendor graphics libraries with new names
+## Temporary compatibility workaround for legacy software to work on new Raspberry Pi firmwares.
+function patchVendorGraphics() {
+    local filename="$1"
+
+    # patchelf is not available on Raspbian Jessie
+    compareVersions "$__os_debian_ver" lt 9 && return
+
+    getDepends patchelf
+    printMsgs "console" "Applying vendor graphics patch: $filename"
+    patchelf --replace-needed libEGL.so libbrcmEGL.so \
+             --replace-needed libGLES_CM.so libbrcmGLESv2.so \
+             --replace-needed libGLESv1_CM.so libbrcmGLESv2.so \
+             --replace-needed libGLESv2.so libbrcmGLESv2.so \
+             --replace-needed libOpenVG.so libbrcmOpenVG.so \
+             --replace-needed libWFC.so libbrcmWFC.so "$filename"
 }

@@ -20,17 +20,17 @@ function sources_lr-desmume() {
 }
 
 function build_lr-desmume() {
-    cd desmume
+    cd desmume/src/frontend/libretro
     local params=()
     isPlatform "arm" && params+=("platform=armvhardfloat")
-    make -f Makefile.libretro clean
-    make -f Makefile.libretro "${params[@]}"
-    md_ret_require="$md_build/desmume/desmume_libretro.so"
+    make clean
+    make "${params[@]}"
+    md_ret_require="$md_build/desmume/src/frontend/libretro/desmume_libretro.so"
 }
 
 function install_lr-desmume() {
     md_ret_files=(
-        'desmume/desmume_libretro.so'
+        'desmume/src/frontend/libretro/desmume_libretro.so'
     )
 }
 

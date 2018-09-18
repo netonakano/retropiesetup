@@ -13,10 +13,10 @@ rp_module_id="darkplaces-quake"
 rp_module_desc="Quake 1 engine - Darkplaces Quake port with GLES rendering"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/xonotic/darkplaces/master/COPYING"
 rp_module_section="opt"
-rp_module_flags="!mali"
+rp_module_flags="!mali !kms"
 
 function depends_darkplaces-quake() {
-    local depends=(libsdl2-dev)
+    local depends=(libsdl2-dev libjpeg-dev)
     isPlatform "rpi" && depends+=(libraspberrypi-dev)
     getDepends "${depends[@]}"
 }
@@ -24,7 +24,7 @@ function depends_darkplaces-quake() {
 function sources_darkplaces-quake() {
     gitPullOrClone "$md_build" https://github.com/xonotic/darkplaces.git
     if isPlatform "rpi"; then
-        applyPatch "$md_data/rpi.diff"
+        applyPatch "$md_data/01_rpi_fixes.diff"
     fi
 }
 

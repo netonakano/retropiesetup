@@ -72,8 +72,8 @@ function mapInput() {
     echo "$params"
 }
 
-if [[ ! -f "$HOME/RetroPie/BIOS/dc_boot.bin" ]]; then
-    dialog --msgbox "You need to copy the Dreamcast BIOS files (dc_boot.bin and dc_flash.bin) to the folder $biosdir to boot the Dreamcast emulator." 22 76
+if [[ ! -f "$HOME/RetroPie/BIOS/dc/dc_boot.bin" ]]; then
+    dialog --no-cancel --pause "You need to copy the Dreamcast BIOS files (dc_boot.bin and dc_flash.bin) to the folder $biosdir to boot the Dreamcast emulator." 22 76 15
     exit 1
 fi
 

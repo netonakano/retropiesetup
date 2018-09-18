@@ -299,7 +299,7 @@ function default_mode() {
             key="${SAVE_EMU}_render"
             ;;
     esac
-    default_process "$CONFIGDIR/all/videomodes.cfg" "$mode" "$key" "$value"
+    default_process "$VIDEO_CONF" "$mode" "$key" "$value"
 }
 
 function default_emulator() {
@@ -900,13 +900,6 @@ function get_sys_command() {
     if [[ -n "$TTY" && "$COMMAND" =~ ^(startx|xinit) ]]; then
         COMMAND+=" -- vt$TTY -keeptty"
     fi
-
-    # if on RPI and there is no RP-NEWBRCMLIBS file present then use old library names for SDL
-    if [[ "$(sed -n '/^Hardware/s/^.*: \(.*\)/\1/p' < /proc/cpuinfo)" == BCM* && "$COMMAND" =~ $ROOTDIR/[^/]*/[^/]* ]]; then
-        if [[ ! -f "${BASH_REMATCH[0]}/RP-NEWBRCMLIBS" ]]; then
-            COMMAND="SDL_VIDEO_EGL_DRIVER=/opt/vc/lib/libEGL.so SDL_VIDEO_GL_DRIVER=/opt/vc/lib/libGLESv2.so $COMMAND"
-        fi
-    fi
 }
 
 function show_launch() {
@@ -1001,6 +994,8 @@ function restore_cursor_and_exit() {
 
 function launch_command() {
     local ret
+    # escape $ to avoid variable expansion (eg roms containing $!)
+    COMMAND="${COMMAND//\$/\\\$}"
     # launch the command
     echo -e "Parameters: $@\nExecuting: $COMMAND" >>"$LOG"
     if [[ "$CONSOLE_OUT" -eq 1 ]]; then
@@ -1041,6 +1036,7 @@ function runcommand() {
 
     if [[ "$DISABLE_MENU" -ne 1 ]]; then
         if ! check_menu; then
+            user_script "runcommand-onend.sh"
             clear
             restore_cursor_and_exit 0
         fi

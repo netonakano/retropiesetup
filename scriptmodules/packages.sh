@@ -217,7 +217,7 @@ function rp_callModule() {
             if fnExists "configure_${md_id}"; then
                 pushd "$md_inst" 2>/dev/null
                 pushed=$?
-                "configure_${md_id}" remove
+                "configure_${md_id}"
             fi
             rm -rf "$md_inst"
             printMsgs "console" "Removed directory $md_inst"
@@ -227,14 +227,6 @@ function rp_callModule() {
                 "$function" "$@"
             elif fnExists "install_bin_${md_id}"; then
                 "install_bin_${md_id}" "$@"
-            fi
-            # if the module has the newbrcmlibs it means it is linked against the
-            # renamed videocore libbrcm* libraries. We record this so we can
-            # switch library names for SDL in runcommand for software using the
-            # older names (the new SDL 2.0.6 requires applications to also use
-            # the new libraries by default)
-            if isPlatform "rpi" && hasFlag "$md_flags" "newbrcmlibs"; then
-                touch "$md_inst/RP-NEWBRCMLIBS"
             fi
             ;;
         install_bin)
@@ -256,28 +248,26 @@ function rp_callModule() {
             ;;
     esac
 
-    local file
-    if [[ "${#md_ret_errors}" -eq 0 ]]; then
-        # check if any required files are found
-        if [[ -n "$md_ret_require" ]]; then
-            for file in "${md_ret_require[@]}"; do
-                if [[ ! -e "$file" ]]; then
-                    md_ret_errors+=("Could not successfully $mode $md_id - $md_desc ($file not found).")
-                    break
-                fi
-            done
-        else
-            # check for existance and copy any files/directories returned
-            if [[ -n "$md_ret_files" ]]; then
-                for file in "${md_ret_files[@]}"; do
-                    if [[ ! -e "$md_build/$file" ]]; then
-                        md_ret_errors+=("Could not successfully install $md_desc ($md_build/$file not found).")
-                        break
-                    fi
-                    cp -Rvf "$md_build/$file" "$md_inst"
-                done
+    # check if any required files are found
+    if [[ -n "$md_ret_require" ]]; then
+        for file in "${md_ret_require[@]}"; do
+            if [[ ! -e "$file" ]]; then
+                md_ret_errors+=("Could not successfully $mode $md_id - $md_desc ($file not found).")
+                break
             fi
-        fi
+        done
+    fi
+
+    if [[ "${#md_ret_errors}" -eq 0 && -n "$md_ret_files" ]]; then
+        # check for existence and copy any files/directories returned
+        local file
+        for file in "${md_ret_files[@]}"; do
+            if [[ ! -e "$md_build/$file" ]]; then
+                md_ret_errors+=("Could not successfully install $md_desc ($md_build/$file not found).")
+                break
+            fi
+            cp -Rvf "$md_build/$file" "$md_inst"
+        done
     fi
 
     # remove build folder if empty
@@ -287,15 +277,14 @@ function rp_callModule() {
 
     # some errors were returned.
     if [[ "${#md_ret_errors[@]}" -gt 0 ]]; then
+        __ERRMSGS+=("${md_ret_errors[@]}")
+        printMsgs "console" "${md_ret_errors[@]}" >&2
         # if sources fails make sure we clean up
         if [[ "$mode" == "sources" ]]; then
             rp_callModule "$md_idx" clean
         fi
         # remove install folder if there is an error (and it is empty)
         [[ -d "$md_inst" ]] && find "$md_inst" -maxdepth 0 -empty -exec rmdir {} \;
-        printMsgs "console" "${md_ret_errors[@]}" >&2
-        # append to global errors and return an error
-        __ERRMSGS+=("${md_ret_errors[@]}")
         return 1
     fi
 

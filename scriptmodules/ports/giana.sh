@@ -12,7 +12,7 @@
 rp_module_id="giana"
 rp_module_desc="Giana's Return"
 rp_module_section="opt"
-rp_module_flags="!x86 !mali"
+rp_module_flags="!x86 !mali !kms"
 
 function depends_giana() {
     getDepends libsdl1.2-dev libsdl-mixer1.2-dev libraspberrypi-dev
@@ -20,6 +20,7 @@ function depends_giana() {
 
 function install_bin_giana() {
     downloadAndExtract "http://www.retroguru.com/gianas-return/gianas-return-v.latest-raspberrypi.zip" "$md_inst"
+    patchVendorGraphics "$md_inst/giana_rpi"
 }
 
 function configure_giana() {

@@ -18,7 +18,12 @@ function depends_retroarch() {
     local depends=(libudev-dev libxkbcommon-dev libsdl2-dev libasound2-dev libusb-1.0-0-dev)
     isPlatform "rpi" && depends+=(libraspberrypi-dev)
     isPlatform "mali" && depends+=(mali-fbdev)
-    isPlatform "x11" && depends+=(libx11-xcb-dev libpulse-dev libavcodec-dev libavformat-dev libavdevice-dev)
+    isPlatform "x11" && depends+=(libx11-xcb-dev libpulse-dev libvulkan-dev)
+    isPlatform "vero4k" && depends+=(vero3-userland-dev-osmc zlib1g-dev libfreetype6-dev)
+
+    if compareVersions "$__os_debian_ver" ge 9; then
+        depends+=(libavcodec-dev libavformat-dev libavdevice-dev)
+    fi
 
     # only install nvidia-cg-toolkit if it is available (as the non-free repo may not be enabled)
     if isPlatform "x86"; then
@@ -33,20 +38,26 @@ function depends_retroarch() {
 }
 
 function sources_retroarch() {
-    gitPullOrClone "$md_build" https://github.com/libretro/RetroArch.git v1.6.7
+    gitPullOrClone "$md_build" https://github.com/libretro/RetroArch.git v1.7.3
     applyPatch "$md_data/01_hotkey_hack.diff"
     applyPatch "$md_data/02_disable_search.diff"
+    applyPatch "$md_data/03_disable_udev_sort.diff"
 }
 
 function build_retroarch() {
-    local params=(--enable-sdl2)
-    ! isPlatform "x11" && params+=(--disable-x11 --enable-opengles --disable-ffmpeg --disable-sdl --enable-sdl2 --disable-oss --disable-pulse --disable-al --disable-jack)
+    local params=(--disable-sdl --enable-sdl2 --disable-oss --disable-al --disable-jack --disable-qt)
+    ! isPlatform "x11" && params+=(--disable-x11 --disable-pulse)
+    if compareVersions "$__os_debian_ver" lt 9; then
+        params+=(--disable-ffmpeg)
+    fi
+    isPlatform "gles" && params+=(--enable-opengles)
     isPlatform "rpi" && params+=(--enable-dispmanx)
     isPlatform "mali" && params+=(--enable-mali_fbdev)
-    if isPlatform "arm"; then
-        params+=(--enable-floathard)
-        isPlatform "neon" && params+=(--enable-neon)
-    fi
+    isPlatform "kms" && params+=(--enable-kms)
+    isPlatform "arm" && params+=(--enable-floathard)
+    isPlatform "neon" && params+=(--enable-neon)
+    isPlatform "x11" && params+=(--enable-vulkan)
+    isPlatform "vero4k" && params+=(--enable-mali_fbdev --with-opengles_libs='-L/opt/vero3/lib')
     ./configure --prefix="$md_inst" "${params[@]}"
     make clean
     make
@@ -94,6 +105,14 @@ function install_xmb_monochrome_assets_retroarch() {
     chown -R $user:$user "$dir"
 }
 
+function _package_xmb_monochrome_assets_retroarch() {
+    gitPullOrClone "$md_build/assets" https://github.com/libretro/retroarch-assets.git
+    mkdir -p "$__tmpdir/archives"
+    local archive="$__tmpdir/archives/retroarch-xmb-monochrome.tar.gz"
+    rm -f "$archive"
+    tar cvzf "$archive" -C "$md_build/assets" xmb/monochrome
+}
+
 function configure_retroarch() {
     [[ "$md_mode" == "remove" ]] && return
 
@@ -130,7 +149,11 @@ function configure_retroarch() {
     iniSet "config_save_on_exit" "false"
     iniSet "video_aspect_ratio_auto" "true"
     iniSet "video_smooth" "false"
-    iniSet "video_threaded" "true"
+
+    if ! isPlatform "x86"; then
+        iniSet "video_threaded" "true"
+    fi
+
     iniSet "video_font_size" "12"
     iniSet "core_options_path" "$configdir/all/retroarch-core-options.cfg"
     isPlatform "x11" && iniSet "video_fullscreen" "true"

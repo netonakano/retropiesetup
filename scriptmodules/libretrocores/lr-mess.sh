@@ -24,7 +24,7 @@ function sources_lr-mess() {
 }
 
 function build_lr-mess() {
-    rpSwap on 1200
+    rpSwap on 1400
     local params=($(_get_params_lr-mame) SUBTARGET=mess)
     make clean
     make "${params[@]}"
@@ -45,7 +45,7 @@ function configure_lr-mess() {
     [[ -z "$module" ]] && module="mess_libretro.so"
 
     local system
-    for system in nes gameboy coleco arcadia crvision; do
+    for system in nes gb coleco arcadia crvision; do
         mkRomDir "$system"
         ensureSystemretroconfig "$system"
         addEmulator 0 "$md_id" "$system" "$md_inst/$module"

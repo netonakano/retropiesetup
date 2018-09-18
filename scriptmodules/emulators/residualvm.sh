@@ -14,7 +14,7 @@ rp_module_desc="ResidualVM - A 3D Game Interpreter"
 rp_module_help="Copy your ResidualVM games to $romdir/residualvm"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/residualvm/residualvm/master/COPYING"
 rp_module_section="exp"
-rp_module_flags="dispmanx !mali"
+rp_module_flags="dispmanx !mali !kms"
 
 function depends_residualvm() {
     local depends=(
@@ -77,9 +77,8 @@ game="\$2"
 [[ "\$game" =~ ^\+ ]] && game=""
 pushd "$romdir/residualvm" >/dev/null
 $md_inst/bin/residualvm --renderer=\$renderer --fullscreen --joystick=0 --extrapath="$md_inst/extra" \$game
-while read line; do
-    id=(\$line);
-    touch "$romdir/residualvm/\$id.rvm"
+while read id desc; do
+    echo "\$desc" > "$romdir/residualvm/\$id.rvm"
 done < <($md_inst/bin/residualvm --list-targets | tail -n +3)
 popd >/dev/null
 _EOF_
