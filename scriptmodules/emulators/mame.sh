@@ -72,7 +72,7 @@ function configure_mame() {
     # Create required MAME directories underneath the ROM directory
     if [[ "$md_mode" == "install" ]]; then
         local mame_sub_dir
-        for mame_sub_dir in artwork cfg comments diff hi inp nvram samples snap sta; do
+        for mame_sub_dir in artwork cfg comments diff inp nvram samples scores snap sta; do
             mkRomDir "$system/$mame_sub_dir"
             ln -sf "$romdir/$system/$mame_sub_dir" "$romdir/arcade/$system"
             # fix for older broken symlink generation
@@ -82,28 +82,39 @@ function configure_mame() {
      
      # Create a new INI file if one does not already exist
      if [[ "$md_mode" == "install" && ! -f "$md_conf_root/$system/mame.ini" ]]; then
-        local config="$(mktemp)"
-        "$md_inst/mame" -showconfig >"$config"
+        pushd "$md_conf_root/$system/"
+        "$md_inst/mame" -createconfig
+        popd
 
-        iniConfig " " "" "$config"
+        iniConfig " " "" "$md_conf_root/$system/mame.ini"
         iniSet "rompath"            "$romdir/$system;$romdir/arcade"
+        iniSet "hashpath"           "$md_inst/hash"
         iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
         iniSet "artpath"            "$romdir/$system/artwork;$romdir/arcade/artwork"
+        iniSet "ctrlrpath"          "$md_inst/ctrlr"
+        iniSet "pluginspath"        "$md_inst/plugins"
+        iniSet "languagepath"       "$md_inst/language"
 
-        iniSet "cfg_directory"      "$romdir/$system/$system/cfg"
-        iniSet "nvram_directory"    "$romdir/$system/$system/nvram"
-        iniSet "input_directory"    "$romdir/$system/$system/inp"
-        iniSet "state_directory"    "$romdir/$system/$system/sta"
-        iniSet "snapshot_directory" "$romdir/$system/$system/snap"
-        iniSet "diff_directory"     "$romdir/$system/$system/diff"
-        iniSet "comment_directory"  "$romdir/$system/$system/comments"
+        iniSet "cfg_directory"      "$romdir/$system/cfg"
+        iniSet "nvram_directory"    "$romdir/$system/nvram"
+        iniSet "input_directory"    "$romdir/$system/inp"
+        iniSet "state_directory"    "$romdir/$system/sta"
+        iniSet "snapshot_directory" "$romdir/$system/snap"
+        iniSet "diff_directory"     "$romdir/$system/diff"
+        iniSet "comment_directory"  "$romdir/$system/comments"
 
         iniSet "skip_gameinfo" "1"
         iniSet "plugin" "hiscore"
         iniSet "samplerate" "44100"
 
-        copyDefaultConfig "$config" "$md_conf_root/$system/mame.ini"
-        rm "$config"
+        iniConfig " " "" "$md_conf_root/$system/ui.ini"
+        iniSet "scores_directory" "$romdir/$system/scores"
+
+        iniConfig " " "" "$md_conf_root/$system/plugin.ini"
+        iniSet "hiscore" "1"
+
+        iniConfig " " "" "$md_conf_root/$system/hiscore.ini"
+        iniSet "hi_path" "$romdir/$system/scores"
 
         chown -R $user:$user "$md_conf_root/$system"
         chmod a+r "$md_conf_root/$system/mame.ini"
