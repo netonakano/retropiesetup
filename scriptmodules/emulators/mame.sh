@@ -34,7 +34,7 @@ function sources_mame() {
 }
 
 function build_mame() {
-    rpSwap on 1400
+    rpSwap on 2048
     make clean
     make
     rpSwap off
