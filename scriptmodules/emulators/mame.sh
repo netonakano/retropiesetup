@@ -30,7 +30,7 @@ function depends_mame() {
 }
 
 function sources_mame() {
-    gitPullOrClone "$md_build" https://github.com/mamedev/mame.git mame0200
+    gitPullOrClone "$md_build" https://github.com/mamedev/mame.git mame0203
 }
 
 function build_mame() {
