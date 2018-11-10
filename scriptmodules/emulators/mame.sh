@@ -14,7 +14,7 @@ rp_module_desc="MAME emulator"
 rp_module_help="ROM Extension: .zip\n\nCopy your MAME roms to either $romdir/mame or\n$romdir/arcade"
 rp_module_licence="GPL2 https://github.com/mamedev/mame/blob/master/LICENSE.md"
 rp_module_section="exp"
-rp_module_flags="!x11 !mali"
+rp_module_flags="!mali"
 
 function depends_mame() {
     if compareVersions $__gcc_version lt 6.0.0; then
