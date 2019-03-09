@@ -14,7 +14,7 @@ rp_module_desc="MAME emulator"
 rp_module_help="ROM Extension: .zip\n\nCopy your MAME roms to either $romdir/mame or\n$romdir/arcade"
 rp_module_licence="GPL2 https://github.com/mamedev/mame/blob/master/LICENSE.md"
 rp_module_section="exp"
-rp_module_flags="!mali"
+rp_module_flags="!mali !armv6"
 
 function depends_mame() {
     if compareVersions $__gcc_version lt 6.0.0; then
@@ -30,13 +30,25 @@ function depends_mame() {
 }
 
 function sources_mame() {
-    gitPullOrClone "$md_build" https://github.com/mamedev/mame.git mame0203
+    gitPullOrClone "$md_build" https://github.com/mamedev/mame.git mame0207
 }
 
 function build_mame() {
-    rpSwap on 2048
-    make clean
+    # More memory is required for x86 platforms
+    if isPlatform "x86"; then
+        rpSwap on 8192
+    else
+        rpSwap on 2048
+    fi
+    
+    # Compile MAME
     make
+    
+    # The MAME executable on 64-bit systems is called mame64 instead of mame. Rename it back to mame.
+    if isPlatform "64bit"; then
+        mv mame64 mame
+    fi
+    
     rpSwap off
     md_ret_require="$md_build/mame"
 }
