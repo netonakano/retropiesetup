@@ -132,7 +132,6 @@ function configure_mame() {
         chmod a+r "$md_conf_root/$system/mame.ini"
     fi
 
-
     local binary_name="$(_get_binary_name_${md_id})"
     addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
     addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
