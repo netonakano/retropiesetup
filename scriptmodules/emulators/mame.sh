@@ -16,15 +16,24 @@ rp_module_licence="GPL2 https://github.com/mamedev/mame/blob/master/LICENSE.md"
 rp_module_section="exp"
 rp_module_flags="!mali !armv6"
 
+function mame_get_binary_name () {
+    # The MAME executable on 64-bit systems is called mame64 instead of mame.
+    if isPlatform "64bit"; then
+        echo 'mame64'
+    else
+        echo 'mame32'
+    fi
+}
+
 function depends_mame() {
     if compareVersions $__gcc_version lt 6.0.0; then
         md_ret_errors+=("Sorry, you need an OS with gcc 6.0 or newer to compile mame")
         return 1
     fi
-    
+
     # Additional libraries required for running
     getDepends libsdl2-ttf-2.0-0
-    
+
     # Additional libraries required for compilation
     getDepends libfontconfig1-dev qt5-default libsdl2-ttf-dev libxinerama-dev
 }
@@ -40,17 +49,12 @@ function build_mame() {
     else
         rpSwap on 2048
     fi
-    
+
     # Compile MAME
     make
-    
-    # The MAME executable on 64-bit systems is called mame64 instead of mame. Rename it back to mame.
-    if isPlatform "64bit"; then
-        mv mame64 mame
-    fi
-    
+
     rpSwap off
-    md_ret_require="$md_build/mame"
+    md_ret_require="$md_build/$(mame_get_binary_name)"
 }
 
 function install_mame() {
@@ -63,7 +67,7 @@ function install_mame() {
         'hlsl'
         'ini'
         'language'
-        'mame'
+        "$(mame_get_binary_name)"
         'nl_examples'
         'plugins'
         'roms'
@@ -91,11 +95,11 @@ function configure_mame() {
             rm -f "$romdir/$system/$mame_sub_dir/$mame_sub_dir"
         done
      fi
-     
+
      # Create a new INI file if one does not already exist
      if [[ "$md_mode" == "install" && ! -f "$md_conf_root/$system/mame.ini" ]]; then
         pushd "$md_conf_root/$system/"
-        "$md_inst/mame" -createconfig
+        "$md_inst/$(mame_get_binary_name)" -createconfig
         popd
 
         iniConfig " " "" "$md_conf_root/$system/mame.ini"
@@ -132,9 +136,9 @@ function configure_mame() {
         chmod a+r "$md_conf_root/$system/mame.ini"
     fi
 
-    addEmulator 0 "$md_id" "arcade" "$md_inst/mame %BASENAME%"
-    addEmulator 1 "$md_id" "$system" "$md_inst/mame %BASENAME%"
-    
+    addEmulator 0 "$md_id" "arcade" "$md_inst/$(mame_get_binary_name) %BASENAME%"
+    addEmulator 1 "$md_id" "$system" "$md_inst/$(mame_get_binary_name) %BASENAME%"
+
     addSystem "arcade" "$rp_module_desc" ".zip"
     addSystem "$system" "$rp_module_desc" ".zip"
 }
