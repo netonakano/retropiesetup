@@ -16,12 +16,12 @@ rp_module_licence="GPL2 https://github.com/mamedev/mame/blob/master/LICENSE.md"
 rp_module_section="exp"
 rp_module_flags="!mali !armv6"
 
-function mame_get_binary_name () {
-    # The MAME executable on 64-bit systems is called mame64 instead of mame.
+function _get_binary_name_mame() {
+    # The MAME executable on 64-bit systems is called mame64 instead of mame. Rename it back to mame.
     if isPlatform "64bit"; then
         echo 'mame64'
     else
-        echo 'mame32'
+        echo 'mame'
     fi
 }
 
@@ -54,7 +54,7 @@ function build_mame() {
     make
 
     rpSwap off
-    md_ret_require="$md_build/$(mame_get_binary_name)"
+    md_ret_require="$md_build/$(_get_binary_name_${md_id})"
 }
 
 function install_mame() {
@@ -67,7 +67,7 @@ function install_mame() {
         'hlsl'
         'ini'
         'language'
-        "$(mame_get_binary_name)"
+        "$(_get_binary_name_${md_id})"
         'nl_examples'
         'plugins'
         'roms'
@@ -80,7 +80,6 @@ function install_mame() {
 function configure_mame() {
     local system="mame"
     mkRomDir "arcade"
-    mkRomDir "arcade/$system"
     mkRomDir "$system"
 
     moveConfigDir "$home/.mame" "$md_conf_root/$system"
@@ -90,16 +89,13 @@ function configure_mame() {
         local mame_sub_dir
         for mame_sub_dir in artwork cfg comments diff inp nvram samples scores snap sta; do
             mkRomDir "$system/$mame_sub_dir"
-            ln -sf "$romdir/$system/$mame_sub_dir" "$romdir/arcade/$system"
-            # fix for older broken symlink generation
-            rm -f "$romdir/$system/$mame_sub_dir/$mame_sub_dir"
         done
      fi
 
      # Create a new INI file if one does not already exist
      if [[ "$md_mode" == "install" && ! -f "$md_conf_root/$system/mame.ini" ]]; then
         pushd "$md_conf_root/$system/"
-        "$md_inst/$(mame_get_binary_name)" -createconfig
+        "$md_inst/$(_get_binary_name_${md_id})" -createconfig
         popd
 
         iniConfig " " "" "$md_conf_root/$system/mame.ini"
@@ -136,8 +132,10 @@ function configure_mame() {
         chmod a+r "$md_conf_root/$system/mame.ini"
     fi
 
-    addEmulator 0 "$md_id" "arcade" "$md_inst/$(mame_get_binary_name) %BASENAME%"
-    addEmulator 1 "$md_id" "$system" "$md_inst/$(mame_get_binary_name) %BASENAME%"
+
+    local binary_name="$(_get_binary_name_${md_id})"
+    addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
+    addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
 
     addSystem "arcade" "$rp_module_desc" ".zip"
     addSystem "$system" "$rp_module_desc" ".zip"
