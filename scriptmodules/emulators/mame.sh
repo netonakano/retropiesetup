@@ -16,6 +16,10 @@ rp_module_licence="GPL2 https://github.com/mamedev/mame/blob/master/LICENSE.md"
 rp_module_section="exp"
 rp_module_flags="!mali !armv6"
 
+function _latest_ver_mame() {
+    wget -qO- https://api.github.com/repos/mamedev/mame/releases/latest | grep -m 1 tag_name | cut -d\" -f4
+}
+
 function _get_binary_name_mame() {
     # The MAME executable on 64-bit systems is called mame64 instead of mame. Rename it back to mame.
     if isPlatform "64bit"; then
@@ -39,7 +43,7 @@ function depends_mame() {
 }
 
 function sources_mame() {
-    gitPullOrClone "$md_build" https://github.com/mamedev/mame.git mame0207
+    gitPullOrClone "$md_build" https://github.com/mamedev/mame.git "$(_latest_ver_mame)"
 }
 
 function build_mame() {
