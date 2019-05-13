@@ -55,7 +55,13 @@ function build_mame() {
     fi
 
     # Compile MAME
-    make
+    make ARCHOPTS=-U_FORTIFY_SOURCE
+
+    if isPlatform "64bit"; then
+        strip mame64
+    else
+        strip mame
+    fi
 
     rpSwap off
     md_ret_require="$md_build/$(_get_binary_name_${md_id})"
