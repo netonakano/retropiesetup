@@ -94,16 +94,20 @@ function configure_mame() {
         for mame_sub_dir in artwork cfg comments diff inp nvram samples scores snap sta; do
             mkRomDir "$system/$mame_sub_dir"
         done
-     fi
+    fi
 
-     # Create a new INI file if one does not already exist
-     if [[ "$md_mode" == "install" && ! -f "$md_conf_root/$system/mame.ini" ]]; then
+    # Create a BIOS directory, where people will be able to store their BIOS files, separate from ROMs
+    mkUserDir "$biosdir/$system"
+    chown $user:$user "$biosdir/$system"
+
+    # Create a new INI file if one does not already exist
+    if [[ "$md_mode" == "install" && ! -f "$md_conf_root/$system/mame.ini" ]]; then
         pushd "$md_conf_root/$system/"
         "$md_inst/$(_get_binary_name_${md_id})" -createconfig
         popd
 
         iniConfig " " "" "$md_conf_root/$system/mame.ini"
-        iniSet "rompath"            "$romdir/$system;$romdir/arcade"
+        iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
         iniSet "hashpath"           "$md_inst/hash"
         iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
         iniSet "artpath"            "$romdir/$system/artwork;$romdir/arcade/artwork"
