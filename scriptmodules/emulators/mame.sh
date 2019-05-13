@@ -11,7 +11,7 @@
 
 rp_module_id="mame"
 rp_module_desc="MAME emulator"
-rp_module_help="ROM Extension: .zip\n\nCopy your MAME roms to either $romdir/mame or\n$romdir/arcade"
+rp_module_help="ROM Extensions: .zip .7z\n\nCopy your MAME roms to either $romdir/mame or\n$romdir/arcade"
 rp_module_licence="GPL2 https://github.com/mamedev/mame/blob/master/LICENSE.md"
 rp_module_section="exp"
 rp_module_flags="!mali !armv6"
@@ -140,6 +140,6 @@ function configure_mame() {
     addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
     addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
 
-    addSystem "arcade" "$rp_module_desc" ".zip"
-    addSystem "$system" "$rp_module_desc" ".zip"
+    addSystem "arcade" "$rp_module_desc" ".zip .7z"
+    addSystem "$system" "$rp_module_desc" ".zip .7z"
 }
