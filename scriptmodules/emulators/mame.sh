@@ -39,7 +39,8 @@ function depends_mame() {
     getDepends libsdl2-ttf-2.0-0
 
     # Additional libraries required for compilation
-    getDepends libfontconfig1-dev qt5-default libsdl2-ttf-dev libxinerama-dev
+    # Note: libxi-dev is requires as of v0.210, because of flag changes for XInput
+    getDepends libfontconfig1-dev qt5-default libsdl2-ttf-dev libxinerama-dev libxi-dev
 }
 
 function sources_mame() {
@@ -55,7 +56,8 @@ function build_mame() {
     fi
 
     # Compile MAME
-    make ARCHOPTS=-U_FORTIFY_SOURCE
+    local params=(NOWERROR=1 ARCHOPTS=-U_FORTIFY_SOURCE)
+    make "${params[@]}"
 
     if isPlatform "64bit"; then
         strip mame64
