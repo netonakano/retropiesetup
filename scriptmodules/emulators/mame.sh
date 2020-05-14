@@ -59,11 +59,7 @@ function build_mame() {
     local params=(NOWERROR=1 ARCHOPTS=-U_FORTIFY_SOURCE)
     make "${params[@]}"
 
-    if isPlatform "64bit"; then
-        strip mame64
-    else
-        strip mame
-    fi
+    strip "$(_get_binary_name_${md_id})"
 
     rpSwap off
     md_ret_require="$md_build/$(_get_binary_name_${md_id})"
