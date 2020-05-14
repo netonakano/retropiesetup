@@ -52,7 +52,7 @@ function build_mame() {
     if isPlatform "x86"; then
         rpSwap on 8192
     else
-        rpSwap on 2048
+        rpSwap on 4096
     fi
 
     # Compile MAME
