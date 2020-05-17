@@ -101,75 +101,67 @@ function configure_mame() {
         moveConfigDir "$home/.mame" "$md_conf_root/$system"
 
         # Create new INI files if they do not already exist
-        if [[ ! -f "$md_conf_root/$system/mame.ini" ]]; then
-            # Create MAME config file
-            local temp_ini_mame="$(mktemp)"
-            
-            iniConfig " " "" "$temp_ini_mame"
-            iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
-            iniSet "hashpath"           "$md_inst/hash"
-            iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
-            iniSet "artpath"            "$romdir/$system/artwork;$romdir/arcade/artwork"
-            iniSet "ctrlrpath"          "$md_inst/ctrlr"
-            iniSet "pluginspath"        "$md_inst/plugins"
-            iniSet "languagepath"       "$md_inst/language"
-        
-            iniSet "cfg_directory"      "$romdir/$system/cfg"
-            iniSet "nvram_directory"    "$romdir/$system/nvram"
-            iniSet "input_directory"    "$romdir/$system/inp"
-            iniSet "state_directory"    "$romdir/$system/sta"
-            iniSet "snapshot_directory" "$romdir/$system/snap"
-            iniSet "diff_directory"     "$romdir/$system/diff"
-            iniSet "comment_directory"  "$romdir/$system/comments"
-        
-            iniSet "skip_gameinfo" "1"
-            iniSet "plugin" "hiscore"
-            iniSet "samplerate" "44100"
-            
-            # Raspberry Pi 4 comes with the OpenGL driver enabled and shows reasonable performance
-            # Other Raspberry Pi's show improved performance using accelerated mode
-            if isPlatform "rpi4"; then
-                iniSet "video" "opengl"
-            elif isPlatform "rpi"; then
-                iniSet "video" "accel"
-            fi
-        
-            copyDefaultConfig "$temp_ini_mame" "$md_conf_root/$system/mame.ini"
-            rm "$temp_ini_mame"
+        # Create MAME config file
+        local temp_ini_mame="$(mktemp)"
+
+        iniConfig " " "" "$temp_ini_mame"
+        iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
+        iniSet "hashpath"           "$md_inst/hash"
+        iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
+        iniSet "artpath"            "$romdir/$system/artwork;$romdir/arcade/artwork"
+        iniSet "ctrlrpath"          "$md_inst/ctrlr"
+        iniSet "pluginspath"        "$md_inst/plugins"
+        iniSet "languagepath"       "$md_inst/language"
+
+        iniSet "cfg_directory"      "$romdir/$system/cfg"
+        iniSet "nvram_directory"    "$romdir/$system/nvram"
+        iniSet "input_directory"    "$romdir/$system/inp"
+        iniSet "state_directory"    "$romdir/$system/sta"
+        iniSet "snapshot_directory" "$romdir/$system/snap"
+        iniSet "diff_directory"     "$romdir/$system/diff"
+        iniSet "comment_directory"  "$romdir/$system/comments"
+
+        iniSet "skip_gameinfo" "1"
+        iniSet "plugin" "hiscore"
+        iniSet "samplerate" "44100"
+
+        # Raspberry Pi 4 comes with the OpenGL driver enabled and shows reasonable performance
+        # Other Raspberry Pi's show improved performance using accelerated mode
+        if isPlatform "rpi4"; then
+            iniSet "video" "opengl"
+        elif isPlatform "rpi"; then
+            iniSet "video" "accel"
         fi
-            
-        if [[ ! -f "$md_conf_root/$system/ui.ini" ]]; then
-            # Create MAME UI config file
-            local temp_ini_ui="$(mktemp)"
-            iniConfig " " "" "$temp_ini_ui"
-            iniSet "scores_directory" "$romdir/$system/scores"
-            copyDefaultConfig "$temp_ini_ui" "$md_conf_root/$system/ui.ini"
-            rm "$temp_ini_ui"
-        fi
-        
-        if [[ ! -f "$md_conf_root/$system/plugin.ini" ]]; then
-            # Create MAME Plugin config file
-            local temp_ini_plugin="$(mktemp)"
-            iniConfig " " "" "$temp_ini_plugin"
-            iniSet "hiscore" "1"
-            copyDefaultConfig "$temp_ini_plugin" "$md_conf_root/$system/plugin.ini"
-            rm "$temp_ini_plugin"
-        fi
-        
-        if [[ ! -f "$md_conf_root/$system/hiscore.ini" ]]; then
-            # Create MAME Hi Score config file
-            local temp_ini_hiscore="$(mktemp)"
-            iniConfig " " "" "$temp_ini_hiscore"
-            iniSet "hi_path" "$romdir/$system/scores"
-            copyDefaultConfig "$temp_ini_hiscore" "$md_conf_root/$system/hiscore.ini"
-            rm "$temp_ini_hiscore"
-        fi
-        
-        local binary_name="$(_get_binary_name_${md_id})"
-        addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
-        addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
-        
-        addSystem "arcade" "$rp_module_desc" ".zip .7z"
-        addSystem "$system" "$rp_module_desc" ".zip .7z"
+
+        copyDefaultConfig "$temp_ini_mame" "$md_conf_root/$system/mame.ini"
+        rm "$temp_ini_mame"
+
+        # Create MAME UI config file
+        local temp_ini_ui="$(mktemp)"
+        iniConfig " " "" "$temp_ini_ui"
+        iniSet "scores_directory" "$romdir/$system/scores"
+        copyDefaultConfig "$temp_ini_ui" "$md_conf_root/$system/ui.ini"
+        rm "$temp_ini_ui"
+
+        # Create MAME Plugin config file
+        local temp_ini_plugin="$(mktemp)"
+        iniConfig " " "" "$temp_ini_plugin"
+        iniSet "hiscore" "1"
+        copyDefaultConfig "$temp_ini_plugin" "$md_conf_root/$system/plugin.ini"
+        rm "$temp_ini_plugin"
+
+        # Create MAME Hi Score config file
+        local temp_ini_hiscore="$(mktemp)"
+        iniConfig " " "" "$temp_ini_hiscore"
+        iniSet "hi_path" "$romdir/$system/scores"
+        copyDefaultConfig "$temp_ini_hiscore" "$md_conf_root/$system/hiscore.ini"
+        rm "$temp_ini_hiscore"
     fi
+
+    local binary_name="$(_get_binary_name_${md_id})"
+    addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
+    addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
+
+    addSystem "arcade" "$rp_module_desc" ".zip .7z"
+    addSystem "$system" "$rp_module_desc" ".zip .7z"
 }
