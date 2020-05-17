@@ -35,11 +35,8 @@ function depends_mame() {
         return 1
     fi
 
-    # Additional libraries required for running
-    getDepends libsdl2-ttf-2.0-0
-
-    # Additional libraries required for compilation
-    # Note: libxi-dev is requires as of v0.210, because of flag changes for XInput
+    # Install required libraries required for compilation and running
+    # Note: libxi-dev is required as of v0.210, because of flag changes for XInput
     getDepends libfontconfig1-dev qt5-default libsdl2-ttf-dev libxinerama-dev libxi-dev
 }
 
@@ -49,7 +46,7 @@ function sources_mame() {
 
 function build_mame() {
     # More memory is required for x86 platforms
-    if isPlatform "x86"; then
+    if isPlatform "64bit"; then
         rpSwap on 8192
     else
         rpSwap on 4096
@@ -59,10 +56,11 @@ function build_mame() {
     local params=(NOWERROR=1 ARCHOPTS=-U_FORTIFY_SOURCE)
     make "${params[@]}"
 
-    strip "$(_get_binary_name_${md_id})"
+    local binary_name="$(_get_binary_name_${md_id})"
+    strip "${binary_name}"
 
     rpSwap off
-    md_ret_require="$md_build/$(_get_binary_name_${md_id})"
+    md_ret_require="$md_build/${binary_name}"
 }
 
 function install_mame() {
@@ -85,68 +83,93 @@ function install_mame() {
 }
 
 function configure_mame() {
-    local system="mame"
-    mkRomDir "arcade"
-    mkRomDir "$system"
-
-    moveConfigDir "$home/.mame" "$md_conf_root/$system"
-
-    # Create required MAME directories underneath the ROM directory
     if [[ "$md_mode" == "install" ]]; then
+        local system="mame"
+        mkRomDir "arcade"
+        mkRomDir "$system"
+
+        # Create required MAME directories underneath the ROM directory
         local mame_sub_dir
         for mame_sub_dir in artwork cfg comments diff inp nvram samples scores snap sta; do
             mkRomDir "$system/$mame_sub_dir"
         done
+
+        # Create a BIOS directory, where people will be able to store their BIOS files, separate from ROMs
+        mkUserDir "$biosdir/$system"
+
+        # Create the configuration directory for the MAME ini files
+        moveConfigDir "$home/.mame" "$md_conf_root/$system"
+
+        # Create new INI files if they do not already exist
+        if [[ ! -f "$md_conf_root/$system/mame.ini" ]]; then
+            # Create MAME config file
+            local temp_ini_mame="$(mktemp)"
+            
+            iniConfig " " "" "$temp_ini_mame"
+            iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
+            iniSet "hashpath"           "$md_inst/hash"
+            iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
+            iniSet "artpath"            "$romdir/$system/artwork;$romdir/arcade/artwork"
+            iniSet "ctrlrpath"          "$md_inst/ctrlr"
+            iniSet "pluginspath"        "$md_inst/plugins"
+            iniSet "languagepath"       "$md_inst/language"
+        
+            iniSet "cfg_directory"      "$romdir/$system/cfg"
+            iniSet "nvram_directory"    "$romdir/$system/nvram"
+            iniSet "input_directory"    "$romdir/$system/inp"
+            iniSet "state_directory"    "$romdir/$system/sta"
+            iniSet "snapshot_directory" "$romdir/$system/snap"
+            iniSet "diff_directory"     "$romdir/$system/diff"
+            iniSet "comment_directory"  "$romdir/$system/comments"
+        
+            iniSet "skip_gameinfo" "1"
+            iniSet "plugin" "hiscore"
+            iniSet "samplerate" "44100"
+            
+            # Raspberry Pi 4 comes with the OpenGL driver enabled and shows reasonable performance
+            # Other Raspberry Pi's show improved performance using accelerated mode
+            if isPlatform "rpi4"; then
+                iniSet "video" "opengl"
+            elif isPlatform "rpi"; then
+                iniSet "video" "accel"
+            fi
+        
+            copyDefaultConfig "$temp_ini_mame" "$md_conf_root/$system/mame.ini"
+            rm "$temp_ini_mame"
+        fi
+            
+        if [[ ! -f "$md_conf_root/$system/ui.ini" ]]; then
+            # Create MAME UI config file
+            local temp_ini_ui="$(mktemp)"
+            iniConfig " " "" "$temp_ini_ui"
+            iniSet "scores_directory" "$romdir/$system/scores"
+            copyDefaultConfig "$temp_ini_ui" "$md_conf_root/$system/ui.ini"
+            rm "$temp_ini_ui"
+        fi
+        
+        if [[ ! -f "$md_conf_root/$system/plugin.ini" ]]; then
+            # Create MAME Plugin config file
+            local temp_ini_plugin="$(mktemp)"
+            iniConfig " " "" "$temp_ini_plugin"
+            iniSet "hiscore" "1"
+            copyDefaultConfig "$temp_ini_plugin" "$md_conf_root/$system/plugin.ini"
+            rm "$temp_ini_plugin"
+        fi
+        
+        if [[ ! -f "$md_conf_root/$system/hiscore.ini" ]]; then
+            # Create MAME Hi Score config file
+            local temp_ini_hiscore="$(mktemp)"
+            iniConfig " " "" "$temp_ini_hiscore"
+            iniSet "hi_path" "$romdir/$system/scores"
+            copyDefaultConfig "$temp_ini_hiscore" "$md_conf_root/$system/hiscore.ini"
+            rm "$temp_ini_hiscore"
+        fi
+        
+        local binary_name="$(_get_binary_name_${md_id})"
+        addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
+        addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
+        
+        addSystem "arcade" "$rp_module_desc" ".zip .7z"
+        addSystem "$system" "$rp_module_desc" ".zip .7z"
     fi
-
-    # Create a BIOS directory, where people will be able to store their BIOS files, separate from ROMs
-    mkUserDir "$biosdir/$system"
-    chown $user:$user "$biosdir/$system"
-
-    # Create a new INI file if one does not already exist
-    if [[ "$md_mode" == "install" && ! -f "$md_conf_root/$system/mame.ini" ]]; then
-        pushd "$md_conf_root/$system/"
-        "$md_inst/$(_get_binary_name_${md_id})" -createconfig
-        popd
-
-        iniConfig " " "" "$md_conf_root/$system/mame.ini"
-        iniSet "rompath"            "$romdir/$system;$romdir/arcade;$biosdir/$system"
-        iniSet "hashpath"           "$md_inst/hash"
-        iniSet "samplepath"         "$romdir/$system/samples;$romdir/arcade/samples"
-        iniSet "artpath"            "$romdir/$system/artwork;$romdir/arcade/artwork"
-        iniSet "ctrlrpath"          "$md_inst/ctrlr"
-        iniSet "pluginspath"        "$md_inst/plugins"
-        iniSet "languagepath"       "$md_inst/language"
-
-        iniSet "cfg_directory"      "$romdir/$system/cfg"
-        iniSet "nvram_directory"    "$romdir/$system/nvram"
-        iniSet "input_directory"    "$romdir/$system/inp"
-        iniSet "state_directory"    "$romdir/$system/sta"
-        iniSet "snapshot_directory" "$romdir/$system/snap"
-        iniSet "diff_directory"     "$romdir/$system/diff"
-        iniSet "comment_directory"  "$romdir/$system/comments"
-
-        iniSet "skip_gameinfo" "1"
-        iniSet "plugin" "hiscore"
-        iniSet "samplerate" "44100"
-
-        iniConfig " " "" "$md_conf_root/$system/ui.ini"
-        iniSet "scores_directory" "$romdir/$system/scores"
-
-        iniConfig " " "" "$md_conf_root/$system/plugin.ini"
-        iniSet "hiscore" "1"
-
-        iniConfig " " "" "$md_conf_root/$system/hiscore.ini"
-        iniSet "hi_path" "$romdir/$system/scores"
-
-        chown -R $user:$user "$md_conf_root/$system"
-        chmod a+r "$md_conf_root/$system/mame.ini"
-    fi
-
-    local binary_name="$(_get_binary_name_${md_id})"
-    addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
-    addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
-
-    addSystem "arcade" "$rp_module_desc" ".zip .7z"
-    addSystem "$system" "$rp_module_desc" ".zip .7z"
 }
