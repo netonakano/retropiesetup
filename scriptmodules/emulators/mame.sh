@@ -83,8 +83,9 @@ function install_mame() {
 }
 
 function configure_mame() {
+    local system="mame"
+
     if [[ "$md_mode" == "install" ]]; then
-        local system="mame"
         mkRomDir "arcade"
         mkRomDir "$system"
 
@@ -160,6 +161,6 @@ function configure_mame() {
     addEmulator 0 "$md_id" "arcade" "$md_inst/${binary_name} %BASENAME%"
     addEmulator 1 "$md_id" "$system" "$md_inst/${binary_name} %BASENAME%"
 
-    addSystem "arcade" "$rp_module_desc" ".zip .7z"
-    addSystem "$system" "$rp_module_desc" ".zip .7z"
+    addSystem "arcade"
+    addSystem "$system"
 }
