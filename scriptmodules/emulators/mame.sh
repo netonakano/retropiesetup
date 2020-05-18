@@ -125,11 +125,9 @@ function configure_mame() {
         iniSet "plugin" "hiscore"
         iniSet "samplerate" "44100"
 
-        # Raspberry Pi 4 comes with the OpenGL driver enabled and shows reasonable performance
-        # Other Raspberry Pi's show improved performance using accelerated mode
-        if isPlatform "rpi4"; then
-            iniSet "video" "opengl"
-        elif isPlatform "rpi"; then
+        # Raspberry Pis show improved performance using accelerated mode which enables SDL_RENDERER_TARGETTEXTURE.
+        # On RPI4 it uses OpenGL as a renderer, while on earlier RPIs it uses OpenGLES2 as the renderer. 
+        if isPlatform "rpi"; then
             iniSet "video" "accel"
         fi
 
