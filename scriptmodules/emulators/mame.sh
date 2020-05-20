@@ -128,9 +128,9 @@ function configure_mame() {
 
         # Raspberry Pis show improved performance using accelerated mode which enables SDL_RENDERER_TARGETTEXTURE.
         # On RPI4 it uses OpenGL as a renderer, while on earlier RPIs it uses OpenGLES2 as the renderer. 
-        if isPlatform "rpi"; then
-            iniSet "video" "accel"
-        fi
+        # X86 Ubuntu by default uses OpenGL as a renderer, but SDL doesn't have target texture enabled as default.
+        # Enabling accel will use target texture on X86 Ubuntu (and likely other X86 Linux platforms).
+        iniSet "video" "accel"
 
         copyDefaultConfig "$temp_ini_mame" "$md_conf_root/$system/mame.ini"
         rm "$temp_ini_mame"
