@@ -30,8 +30,8 @@ function _get_binary_name_mame() {
 }
 
 function depends_mame() {
-    if compareVersions $__gcc_version lt 7.2.0; then
-        md_ret_errors+=("Sorry, you need an OS with gcc 7.2 or newer to compile $md_id")
+    if compareVersions $__gcc_version lt 7; then
+        md_ret_errors+=("Sorry, you need an OS with gcc 7 or newer to compile $md_id")
         return 1
     fi
 
