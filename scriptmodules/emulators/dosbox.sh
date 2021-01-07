@@ -17,16 +17,17 @@ rp_module_section="opt"
 rp_module_flags="dispmanx !mali !kms"
 
 function depends_dosbox() {
-    local depends=(libsdl1.2-dev libsdl-net1.2-dev libsdl-sound1.2-dev libasound2-dev libpng12-dev automake autoconf zlib1g-dev subversion "$@")
+    local depends=(libsdl1.2-dev libsdl-net1.2-dev libsdl-sound1.2-dev libasound2-dev libpng-dev automake autoconf zlib1g-dev subversion "$@")
     isPlatform "rpi" && depends+=(timidity freepats)
     getDepends "${depends[@]}"
 }
 
 function sources_dosbox() {
     local revision="$1"
-    [[ -z "$revision" ]] && revision="4006"
+    [[ -z "$revision" ]] && revision="4194"
 
     svn checkout https://svn.code.sf.net/p/dosbox/code-0/dosbox/trunk "$md_build" -r "$revision"
+    applyPatch "$md_data/01-fully-bindable-joystick.diff"
 }
 
 function build_dosbox() {

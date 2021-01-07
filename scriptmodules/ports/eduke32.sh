@@ -16,7 +16,7 @@ rp_module_section="opt"
 
 function depends_eduke32() {
     local depends=(
-        subversion flac libflac-dev libvorbis-dev libpng12-dev libvpx-dev freepats
+        subversion flac libflac-dev libvorbis-dev libpng-dev libvpx-dev freepats
         libsdl2-dev libsdl2-mixer-dev
     )
 
@@ -26,7 +26,7 @@ function depends_eduke32() {
 }
 
 function sources_eduke32() {
-    svn checkout http://svn.eduke32.com/eduke32 "$md_build"
+    svn checkout -r7077 http://svn.eduke32.com/eduke32 "$md_build"
 }
 
 function build_eduke32() {
@@ -61,7 +61,7 @@ function configure_eduke32() {
 
     mkRomDir "ports/duke3d"
 
-    moveConfigDir "$home/.eduke32" "$md_conf_root/duke3d"
+    moveConfigDir "$home/.config/eduke32" "$md_conf_root/duke3d"
 
     # remove old launch script
     rm -f "$romdir/ports/Duke3D Shareware.sh"

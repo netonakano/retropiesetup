@@ -123,12 +123,12 @@ function _add_rom_emulationstation() {
 
 function depends_emulationstation() {
     local depends=(
-        libboost-system-dev libboost-filesystem-dev
-        libboost-date-time-dev libfreeimage-dev libfreetype6-dev
+        libfreeimage-dev libfreetype6-dev
         libcurl4-openssl-dev libasound2-dev cmake libsdl2-dev libsm-dev
         libvlc-dev libvlccore-dev vlc
     )
 
+    compareVersions "$__os_debian_ver" gt 8 && depends+=(rapidjson-dev)
     isPlatform "x11" && depends+=(gnome-terminal)
     getDepends "${depends[@]}"
 }
@@ -137,7 +137,13 @@ function sources_emulationstation() {
     local repo="$1"
     local branch="$2"
     [[ -z "$repo" ]] && repo="https://github.com/RetroPie/EmulationStation"
-    [[ -z "$branch" ]] && branch="stable"
+    if [[ -z "$branch" ]]; then
+        if compareVersions "$__os_debian_ver" gt 8; then
+            branch="stable"
+        else
+            branch="v2.7.6"
+        fi
+    fi
     gitPullOrClone "$md_build" "$repo" "$branch"
 }
 
@@ -157,6 +163,7 @@ function install_emulationstation() {
         'emulationstation.sh'
         'GAMELISTS.md'
         'README.md'
+        'resources'
         'THEMES.md'
     )
 }
@@ -220,7 +227,7 @@ export TTY="\${tty:8:1}"
 clear
 tput civis
 "$md_inst/emulationstation.sh" "\$@"
-if [[ $? -eq 139 ]]; then
+if [[ \$? -eq 139 ]]; then
     dialog --cr-wrap --no-collapse --msgbox "Emulation Station crashed!\n\nIf this is your first boot of RetroPie - make sure you are using the correct image for your system.\n\\nCheck your rom file/folder permissions and if running on a Raspberry Pi, make sure your gpu_split is set high enough and/or switch back to using carbon theme.\n\nFor more help please use the RetroPie forum." 20 60 >/dev/tty
 fi
 tput cnorm
@@ -278,15 +285,6 @@ function configure_emulationstation() {
     copy_inputscripts_emulationstation
 
     install_launch_emulationstation
-
-    if isPlatform "rpi"; then
-        # make sure that ES has enough GPU memory
-        iniConfig "=" "" /boot/config.txt
-        iniSet "gpu_mem_256" 128
-        iniSet "gpu_mem_512" 256
-        iniSet "gpu_mem_1024" 256
-        iniSet "overscan_scale" 1
-    fi
 
     mkdir -p "/etc/emulationstation"
 

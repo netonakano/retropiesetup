@@ -92,7 +92,9 @@ function gui_esthemes() {
         'anthonycaccese art-book'
         'anthonycaccese art-book-4-3'
         'anthonycaccese art-book-pocket'
+        'anthonycaccese art-book-micro'
         'anthonycaccese tft'
+        'anthonycaccese picade'
         'TMNTturtleguy ComicBook'
         'TMNTturtleguy ComicBook_4-3'
         'TMNTturtleguy ComicBook_SE-Wheelart'
@@ -103,6 +105,8 @@ function gui_esthemes() {
         'dmmarti maximuspie'
         'dmmarti showcase'
         'dmmarti kidz'
+        'dmmarti unified'
+        'dmmarti gamehat'
         'rxbrad freeplay'
         'rxbrad gbz35'
         'rxbrad gbz35-dark'
@@ -158,6 +162,32 @@ function gui_esthemes() {
         'RetroHursty69 minecraft'
         'RetroHursty69 incredibles'
         'RetroHursty69 mario_melee'
+        'RetroHursty69 evilresident'
+        'RetroHursty69 hurstyspin'
+        'RetroHursty69 cyber'
+        'RetroHursty69 supersweet'
+        'RetroHursty69 donkeykonkey'
+        'RetroHursty69 snapback'
+        'RetroHursty69 heman'
+        'RetroHursty69 pitube'
+        'RetroHursty69 batmanburton'
+        'RetroHursty69 NegativeColor'
+        'RetroHursty69 NegativeSepia'
+        'RetroHursty69 corg'
+        'RetroHursty69 mysticorb'
+        'RetroHursty69 joysticks'
+        'RetroHursty69 orbpilot'
+        'RetroHursty69 bitfit'
+        'RetroHursty69 circuit'
+        'RetroHursty69 retroboy'
+        'RetroHursty69 retroboy2'
+        'RetroHursty69 hurstybluetake2'
+        'RetroHursty69 fabuloso'
+        'RetroHursty69 arcade1up_aspectratio54'
+        'RetroHursty69 supersweet_aspectratio54'
+        'RetroHursty69 heychromey_aspectratio54'
+        'RetroHursty69 mariobrosiii'
+        'RetroHursty69 vertical_limit_verticaltheme'
         'Saracade scv720'
         'chicueloarcade Chicuelo'
         'SuperMagicom nostalgic'
@@ -166,6 +196,10 @@ function gui_esthemes() {
         'lipebello spaceoddity'
         'lipebello swineapple'
         'waweedman pii-wii'
+        'waweedman Blade-360'
+        'waweedman Venom'
+        'waweedman Spider-Man'
+        'blowfinger77 locomotion'
     )
     while true; do
         local theme
@@ -197,7 +231,7 @@ function gui_esthemes() {
                 installed_themes+=("$theme $repo")
             else
                 status+=("n")
-                options+=("$i" "Install $repo/$theme (not installed)")
+                options+=("$i" "Install $repo/$theme")
             fi
             ((i++))
         done

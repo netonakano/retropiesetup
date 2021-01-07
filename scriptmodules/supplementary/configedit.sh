@@ -113,7 +113,7 @@ function _joypad_index_configedit() {
                 # get joystick device paths
                 while read -r dev; do
                     if udevadm info --name=$dev | grep -q "ID_INPUT_JOYSTICK=1"; then
-                        paths+=("$(udevadm info --name=$dev | grep DEVPATH | cut -d= -f2)")
+                        paths+=("$(udevadm info --name=$dev --query=name)")
                     fi
                 done < <(find /dev/input -name "js*")
 
@@ -121,7 +121,7 @@ function _joypad_index_configedit() {
                     # sort by path
                     IFS=$'\n'
                     while read -r path; do
-                        devs_name+=("$(</$(dirname sys$path)/name)")
+                        devs_name+=("$(cat /sys/class/$path/device/name)")
                     done < <(sort <<<"${paths[*]}")
                     unset IFS
                 fi
@@ -169,7 +169,7 @@ function basic_configedit() {
 
     local ini_options=(
         'video_smooth true false'
-        'aspect_ratio_index _id_ 4:3 16:9 16:10 16:15 1:1 2:1 3:2 3:4 4:1 4:4 5:4 6:5 7:9 8:3 8:7 19:12 19:14 30:17 32:9 config square core custom'
+        'aspect_ratio_index _id_ 4:3 16:9 16:10 16:15 21:9 1:1 2:1 3:2 3:4 4:1 4:4 5:4 6:5 7:9 8:3 8:7 19:12 19:14 30:17 32:9 config square core custom'
         '_function_ _video_fullscreen_configedit'
         'video_shader_enable true false'
         "video_shader _file_ *.*p $rootdir/emulators/retroarch/shader"
@@ -225,7 +225,7 @@ function advanced_configedit() {
 
     local ini_options=(
         'video_smooth true false'
-        'aspect_ratio_index _id_ 4:3 16:9 16:10 16:15 1:1 2:1 3:2 3:4 4:1 4:4 5:4 6:5 7:9 8:3 8:7 19:12 19:14 30:17 32:9 config square core custom'
+        'aspect_ratio_index _id_ 4:3 16:9 16:10 16:15 21:9 1:1 2:1 3:2 3:4 4:1 4:4 5:4 6:5 7:9 8:3 8:7 19:12 19:14 30:17 32:9 config square core custom'
         'video_shader_enable true false'
         "video_shader _file_ *.*p $rootdir/emulators/retroarch/shader"
         'input_overlay_enable true false'
