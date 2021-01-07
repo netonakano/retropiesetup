@@ -17,7 +17,7 @@ rp_module_section="opt"
 rp_module_flags=""
 
 function depends_hatari() {
-    getDepends libsdl2-dev zlib1g-dev libpng12-dev cmake libreadline-dev portaudio19-dev
+    getDepends libsdl2-dev zlib1g-dev libpng-dev cmake libreadline-dev portaudio19-dev
 }
 
 function _sources_libcapsimage_hatari() {
@@ -27,7 +27,7 @@ function _sources_libcapsimage_hatari() {
 }
 
 function sources_hatari() {
-    downloadAndExtract "$__archive_url/hatari-1.9.0.tar.bz2" "$md_build" 1
+    downloadAndExtract "$__archive_url/hatari-1.9.0.tar.bz2" "$md_build" --strip-components 1
     # we need to use capsimage 5, as there is no source for 4.2
     sed -i "s/CAPSIMAGE_VERSION 4/CAPSIMAGE_VERSION 5/" cmake/FindCapsImage.cmake
     # capsimage 5.1 misses these types that were defined in 4.2
