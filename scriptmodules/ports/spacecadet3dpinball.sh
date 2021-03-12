@@ -64,6 +64,7 @@ function configure_spacecadet3dpinball() {
 
 		#
 		# Configure audio for better performance and mixing within Wine
+		# See: https://www.compuphase.com/wavemix.htm
 		#
     mv /home/pi/.wine/drive_c/Program\ Files/SpaceCadet3DPinball/wavemix.inf /home/pi/.wine/drive_c/Program\ Files/SpaceCadet3DPinball/wavemix.inf.bak
     cat > /home/pi/.wine/drive_c/Program\ Files/SpaceCadet3DPinball/wavemix.inf << _EOFWM_
