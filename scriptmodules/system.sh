@@ -410,7 +410,7 @@ function get_platform() {
                         *tegra194*)
                             __platform="xavier"
                             ;;
-                        *radxa.zero*)
+                        *radxa,zero*)
                             __platform="radxa-zero"
                             ;;
                     esac
