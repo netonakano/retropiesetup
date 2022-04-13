@@ -410,6 +410,9 @@ function get_platform() {
                         *tegra194*)
                             __platform="xavier"
                             ;;
+                        *radxa.zero*)
+                            __platform="radxa-zero"
+                            ;;
                     esac
                 elif [[ -e "/sys/devices/soc0/family" ]]; then
                     case "$(tr -d '\0' < /sys/devices/soc0/family)" in
@@ -542,6 +545,22 @@ function platform_odroid-xu() {
     cpu_arm_state
     platform_conf_glext
     __platform_flags+=(mali gles)
+}
+
+function platform_radxa-zero() {
+    cpu_armv8 "cortex-a53"
+    if [[ "$(getconf LONG_BIT)" -eq 32 ]]; then
+        __default_cflags="-O2 -march=armv8-a+crc -mtune=cortex-a53 -mfpu=neon-fp-armv8"
+        __platform_flags+=(arm armv8 neon kms gles gl)
+    else
+        __default_cflags="-O2 -march=native"
+        __platform_flags+=(aarch64 kms gles gl)
+    fi
+    __default_cflags+=" -ftree-vectorize -funsafe-math-optimizations"
+    # required for mali headers to define GL functions
+    __default_cflags+=" -DGL_GLEXT_PROTOTYPES"
+    __default_asflags=""
+    __default_makeflags="-j2"
 }
 
 function platform_tegra-x1() {
