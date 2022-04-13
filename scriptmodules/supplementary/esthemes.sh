@@ -21,18 +21,46 @@ function depends_esthemes() {
     fi
 }
 
+function _has_pixel_pos_esthemes() {
+    local pixel_pos=0
+    # get the version of emulationstation installed so we can check whether to show
+    # themes that use the new pixel based positioning - we run as $user as the
+    # emulationstation launch script will exit if run as root
+    local es_ver="$(sudo -u $user /usr/bin/emulationstation --help | grep -oP "Version \K[^,]+")"
+    # if emulationstation is newer than 2.10, enable pixel based themes
+    compareVersions "$es_ver" ge "2.10" && pixel_pos=1
+    echo "$pixel_pos"
+}
+
 function install_theme_esthemes() {
     local theme="$1"
     local repo="$2"
+    local branch="$3"
+
+    local pixel_pos="$(_has_pixel_pos_esthemes)"
+
     if [[ -z "$repo" ]]; then
         repo="RetroPie"
     fi
+
     if [[ -z "$theme" ]]; then
         theme="carbon"
         repo="RetroPie"
+        [[ "$pixel_pos" -eq 1 ]] && theme+="-2021"
     fi
+
+    local name="$theme"
+
+    if [[ -z "$branch" ]]; then
+        # Get the name of the default branch, fallback to 'master' if not found
+        branch=$(runCmd git ls-remote --symref --exit-code "https://github.com/$repo/es-theme-$theme.git" HEAD | grep -oP ".*/\K[^\t]+")
+        [[ -z "$branch" ]] && branch="master"
+    else
+        name+="-$branch"
+    fi
+
     mkdir -p "/etc/emulationstation/themes"
-    gitPullOrClone "/etc/emulationstation/themes/$theme" "https://github.com/$repo/es-theme-$theme.git"
+    gitPullOrClone "/etc/emulationstation/themes/$name" "https://github.com/$repo/es-theme-$theme.git" "$branch"
 }
 
 function uninstall_theme_esthemes() {
@@ -43,7 +71,19 @@ function uninstall_theme_esthemes() {
 }
 
 function gui_esthemes() {
-    local themes=(
+    local themes=()
+
+    local pixel_pos="$(_has_pixel_pos_esthemes)"
+
+    if [[ "$pixel_pos" -eq 1 ]]; then
+        themes+=(
+            'RetroPie carbon-2021'
+            'RetroPie carbon-2021 centered'
+            'RetroPie carbon-2021 nometa'
+        )
+    fi
+
+    local themes+=(
         'RetroPie carbon'
         'RetroPie carbon-centered'
         'RetroPie carbon-nometa'
@@ -64,8 +104,6 @@ function gui_esthemes() {
         'AmadhiX eudora'
         'AmadhiX eudora-bigshot'
         'AmadhiX eudora-concise'
-        'InsecureSpike retroplay-clean-canela'
-        'InsecureSpike retroplay-clean-detail-canela'
         'Omnija simpler-turtlepi'
         'Omnija simpler-turtlemini'
         'Omnija metro'
@@ -101,6 +139,7 @@ function gui_esthemes() {
         'TMNTturtleguy ComicBook_SE-Wheelart'
         'TMNTturtleguy ComicBook_4-3_SE-Wheelart'
         'ChoccyHobNob cygnus'
+        'DTEAM-1 cygnus-blue-flames'
         'dmmarti steampunk'
         'dmmarti hurstyblue'
         'dmmarti maximuspie'
@@ -216,12 +255,29 @@ function gui_esthemes() {
         'RetroHursty69 CRTBlast'
         'RetroHursty69 CRTNeonBlast'
         'RetroHursty69 CRTCabBlast'
+        'RetroHursty69 ComicCRASHB'
+        'RetroHursty69 ComicPACMAN'
+        'RetroHursty69 ComicSONIC'
+        'RetroHursty69 ComicXMEN'
+        'RetroHursty69 ComicZELDA'
+        'RetroHursty69 synthy16x9'
+        'RetroHursty69 synthyA1UP'
+        'RetroHursty69 supersynthy16x9'
+        'RetroHursty69 supersynthyA1UP'
+        'RetroHursty69 HyperCab'
+        'RetroHursty69 NeonFantasy'
+        'RetroHursty69 ShadowClean'
+        'RetroHursty69 shine'
+        'RetroHursty69 Vinyl-Hits'
         'Saracade scv720'
         'chicueloarcade Chicuelo'
         'SuperMagicom nostalgic'
         'lipebello retrorama'
+        'lipebello retrorama-turbo'
         'lipebello strangerstuff'
         'lipebello spaceoddity'
+        'lipebello spaceoddity-43'
+        'lipebello spaceoddity-wide'
         'lipebello swineapple'
         'waweedman pii-wii'
         'waweedman Blade-360'
@@ -231,6 +287,7 @@ function gui_esthemes() {
         'justincaseurskynet Arcade1up-5x4-Horizontal'
         'KALEL1981 Super-Retroboy'
         'xovox RetroCRT-240p'
+        'xovox RetroCRT-240p-Rainbow'
         'xovox RetroCRT-240p-Vertical'
         'arcadeforge push-a'
         'arcadeforge push-a-v'
@@ -247,9 +304,15 @@ function gui_esthemes() {
         'KALEL1981 super-arcade1up-5x4'
         'KALEL1981 gold-standard'
         'Elratauru angular-artwork'
+        'cjonasw raspixel-320-240'
+        'crxone 3twenty2fourty'
     )
     while true; do
         local theme
+        local theme_dir
+        local branch
+        local name
+
         local installed_themes=()
         local repo
         local options=()
@@ -272,13 +335,20 @@ function gui_esthemes() {
             theme=($theme)
             repo="${theme[0]}"
             theme="${theme[1]}"
-            if [[ -d "/etc/emulationstation/themes/$theme" ]]; then
+            branch="${theme[2]}"
+            name="$repo/$theme"
+            theme_dir="$theme"
+            if [[ -n "$branch" ]]; then
+                name+=" ($branch)"
+                theme_dir+="-$branch"
+            fi
+            if [[ -d "/etc/emulationstation/themes/$theme_dir" ]]; then
                 status+=("i")
-                options+=("$i" "Update or Uninstall $repo/$theme (installed)")
-                installed_themes+=("$theme $repo")
+                options+=("$i" "Update or Uninstall $name (installed)")
+                installed_themes+=("$theme $repo $branch")
             else
                 status+=("n")
-                options+=("$i" "Install $repo/$theme")
+                options+=("$i" "Install $name")
             fi
             ((i++))
         done
@@ -317,27 +387,34 @@ function gui_esthemes() {
             U)
                 for theme in "${installed_themes[@]}"; do
                     theme=($theme)
-                    rp_callModule esthemes install_theme "${theme[0]}" "${theme[1]}"
+                    rp_callModule esthemes install_theme "${theme[0]}" "${theme[1]}" "${theme[2]}"
                 done
                 ;;
             *)
                 theme=(${themes[choice-1]})
                 repo="${theme[0]}"
                 theme="${theme[1]}"
+                branch="${theme[2]}"
+                name="$repo/$theme"
+                theme_dir="$theme"
+                if [[ -n "$branch" ]]; then
+                    name+=" ($branch)"
+                    theme_dir+="-$branch"
+                fi
                 if [[ "${status[choice]}" == "i" ]]; then
-                    options=(1 "Update $repo/$theme" 2 "Uninstall $repo/$theme")
-                    cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option for theme" 12 40 06)
+                    options=(1 "Update $name" 2 "Uninstall $name")
+                    cmd=(dialog --backtitle "$__backtitle" --menu "Choose an option for theme" 12 60 06)
                     local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
                     case "$choice" in
                         1)
-                            rp_callModule esthemes install_theme "$theme" "$repo"
+                            rp_callModule esthemes install_theme "$theme" "$repo" "$branch"
                             ;;
                         2)
-                            rp_callModule esthemes uninstall_theme "$theme"
+                            rp_callModule esthemes uninstall_theme "$theme_dir"
                             ;;
                     esac
                 else
-                    rp_callModule esthemes install_theme "$theme" "$repo"
+                    rp_callModule esthemes install_theme "$theme" "$repo" "$branch"
                 fi
                 ;;
         esac

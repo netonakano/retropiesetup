@@ -22,7 +22,7 @@ function depends_image() {
 
 function create_chroot_image() {
     local dist="$1"
-    [[ -z "$dist" ]] && dist="stretch"
+    [[ -z "$dist" ]] && dist="buster"
 
     local chroot="$2"
     [[ -z "$chroot" ]] && chroot="$md_build/chroot"
@@ -42,6 +42,9 @@ function create_chroot_image() {
             url="https://downloads.raspberrypi.org/raspbian_lite/images/raspbian_lite-2019-04-09/2019-04-08-raspbian-stretch-lite.zip"
             ;;
         buster)
+            url="https://downloads.raspberrypi.org/raspios_oldstable_lite_armhf_latest"
+            ;;
+        bullseye)
             url="https://downloads.raspberrypi.org/raspios_lite_armhf_latest"
             ;;
         *)
@@ -53,7 +56,7 @@ function create_chroot_image() {
     local base="raspbian-${dist}-lite"
     local image="$base.img"
     if [[ ! -f "$image" ]]; then
-        wget -c -O "$base.zip" "$url"
+        download "$url" "$base.zip"
         unzip -o "$base.zip"
         mv "$(unzip -Z -1 "$base.zip")" "$image"
         rm "$base.zip"
@@ -154,7 +157,7 @@ function _init_chroot_image() {
     # unmount on ctrl+c
     trap "_trap_chroot_image '$chroot'" INT
 
-    # mount special filesytems to chroot
+    # mount special filesystems to chroot
     mkdir -p "$chroot"/dev/pts
     mount none -t devpts "$chroot/dev/pts"
     mount -t proc /proc "$chroot/proc"
@@ -324,8 +327,8 @@ function platform_image() {
             image_platform="RPI 1/Zero"
             ;;
         rpi2)
-            image_base+="rpi2_3"
-            image_platform="RPI 2/3"
+            image_base+="rpi2_3_zero2w"
+            image_platform="RPI 2/3/Zero 2 W"
             ;;
         rpi3)
             image_base+="rpi3"

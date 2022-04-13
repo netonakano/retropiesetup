@@ -12,6 +12,7 @@
 rp_module_id="eduke32"
 rp_module_desc="Duke3D source port"
 rp_module_licence="GPL2 https://voidpoint.io/terminx/eduke32/-/raw/master/package/common/gpl-2.0.txt?inline=false"
+rp_module_repo="git https://voidpoint.io/terminx/eduke32.git master dfc16b08"
 rp_module_section="opt"
 
 function depends_eduke32() {
@@ -27,10 +28,7 @@ function depends_eduke32() {
 }
 
 function sources_eduke32() {
-    # was svn rev -r8090
-    local revision="dfc16b08"
-
-    gitPullOrClone "$md_build" https://voidpoint.io/terminx/eduke32.git "" "$revision"
+    gitPullOrClone
 
     # r6918 causes a 20+ second delay on startup on ARM devices
     isPlatform "arm" && applyPatch "$md_data/0001-revert-r6918.patch"
@@ -41,6 +39,8 @@ function sources_eduke32() {
     isPlatform "gles" && applyPatch "$md_data/0003-replace-gl_red.patch"
     # gcc 6.3.x compiler fix
     applyPatch "$md_data/0004-recast-function.patch"
+    # cherry-picked commit fixing a game bug in E1M4 (shrinker ray stuck)
+    applyPatch "$md_data/0005-e1m4-shrinker-bug.patch"
 }
 
 function build_eduke32() {
@@ -75,15 +75,16 @@ function install_eduke32() {
 }
 
 function game_data_eduke32() {
-    cd "$_tmpdir"
-
+    local dest="$romdir/ports/duke3d"
     if [[ "$md_id" == "eduke32" ]]; then
-        if [[ ! -f "$romdir/ports/duke3d/duke3d.grp" ]]; then
-            wget -O 3dduke13.zip "$__archive_url/3dduke13.zip"
-            unzip -L -o 3dduke13.zip dn3dsw13.shr
-            unzip -L -o dn3dsw13.shr -d "$romdir/ports/duke3d" duke3d.grp duke.rts
-            rm 3dduke13.zip dn3dsw13.shr
-            chown -R $user:$user "$romdir/ports/duke3d"
+        if [[ ! -f "$dest/duke3d.grp" ]]; then
+            mkUserDir "$dest"
+            local temp="$(mktemp -d)"
+            download "$__archive_url/3dduke13.zip" "$temp"
+            unzip -L -o "$temp/3dduke13.zip" -d "$temp" dn3dsw13.shr
+            unzip -L -o "$temp/dn3dsw13.shr" -d "$dest" duke3d.grp duke.rts
+            rm -rf "$temp"
+            chown -R $user:$user "$dest"
         fi
     fi
 }
@@ -147,7 +148,7 @@ function add_games_eduke32() {
         game_args="game$game[2]"
 
         if [[ -d "$romdir/ports/$portname/${!game_path}" ]]; then
-           addPort "$md_id" "$portname" "${!game_launcher}" "${binary}.sh %ROM%" "-j$romdir/ports/$portname/${game0[1]} -j$romdir/ports/$portname/${!game_path} ${!game_args}"
+           addPort "$md_id" "$portname" "${!game_launcher}" "pushd $md_conf_root/$portname; ${binary}.sh %ROM%; popd" "-j$romdir/ports/$portname/${game0[1]} -j$romdir/ports/$portname/${!game_path} ${!game_args}"
         fi
     done
 

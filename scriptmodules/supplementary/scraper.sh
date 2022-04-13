@@ -12,6 +12,7 @@
 rp_module_id="scraper"
 rp_module_desc="Scraper for EmulationStation by Steven Selph"
 rp_module_licence="MIT https://raw.githubusercontent.com/sselph/scraper/master/LICENSE"
+rp_module_repo="git https://github.com/sselph/scraper.git master"
 rp_module_section="opt"
 rp_module_flags="nobin"
 
@@ -22,6 +23,8 @@ function depends_scraper() {
 function sources_scraper() {
     local goroot="$(_get_goroot_golang)"
     GOPATH="$md_build" GOROOT="$goroot" "$goroot/bin/go" get -u github.com/sselph/scraper
+    # manually set repo_dir for packaging info / version checking
+    __mod_info[$md_id/repo_dir]="$md_build/src/github.com/sselph/scraper"
 }
 
 function build_scraper() {
@@ -47,7 +50,7 @@ function get_ver_scraper() {
 }
 
 function latest_ver_scraper() {
-    wget -qO- https://api.github.com/repos/sselph/scraper/releases/latest | grep -m 1 tag_name | cut -d\" -f4
+    download https://api.github.com/repos/sselph/scraper/releases/latest - | grep -m 1 tag_name | cut -d\" -f4
 }
 
 function list_systems_scraper() {
@@ -272,8 +275,6 @@ function gui_scraper() {
 
         options+=(W "Max image width ($max_width)")
         options+=(H "Max image height ($max_height)")
-
-        options+=(U "Update scraper to the latest version")
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
         if [[ -n "$choice" ]]; then
             default="$choice"
@@ -337,9 +338,6 @@ function gui_scraper() {
                     cmd=(dialog --backtitle "$__backtitle" --inputbox "Please enter the max image width in pixels" 10 60 "$max_width")
                     max_width=$("${cmd[@]}" 2>&1 >/dev/tty)
                     iniSet "max_width" "$max_width"
-                    ;;
-                U)
-                    rp_callModule "$md_id"
                     ;;
             esac
         else

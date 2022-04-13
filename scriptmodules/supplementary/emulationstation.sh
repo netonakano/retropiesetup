@@ -12,6 +12,7 @@
 rp_module_id="emulationstation"
 rp_module_desc="EmulationStation - Frontend used by RetroPie for launching emulators"
 rp_module_licence="MIT https://raw.githubusercontent.com/RetroPie/EmulationStation/master/LICENSE.md"
+rp_module_repo="git https://github.com/RetroPie/EmulationStation :_get_branch_emulationstation"
 rp_module_section="core"
 rp_module_flags="frontend"
 
@@ -21,7 +22,7 @@ function _get_input_cfg_emulationstation() {
 
 function _update_hook_emulationstation() {
     # make sure the input configuration scripts and launch script are always up to date
-    if rp_isInstalled "$md_idx"; then
+    if rp_isInstalled "$md_id"; then
         copy_inputscripts_emulationstation
         install_launch_emulationstation
     fi
@@ -71,6 +72,12 @@ function _add_system_emulationstation() {
             -u "/systemList/system[name='$name']/platform" -v "$platform" \
             -u "/systemList/system[name='$name']/theme" -v "$theme" \
             "$conf"
+    fi
+
+    # alert the user if they have a custom es_systems.cfg which doesn't contain the system we are adding
+    local conf_local="$configdir/all/emulationstation/es_systems.cfg"
+    if [[ -f "$conf_local" ]] && [[ "$(xmlstarlet sel -t -v "count(/systemList/system[name='$name'])" "$conf_local")" -eq 0 ]]; then
+        md_ret_info+=("You have a custom override of the EmulationStation system config in:\n\n$conf_local\n\nYou will need to copy the updated $system config from $conf to your custom config for $system to show up in EmulationStation.")
     fi
 
     _sort_systems_emulationstation "name"
@@ -136,10 +143,7 @@ function depends_emulationstation() {
     getDepends "${depends[@]}"
 }
 
-function sources_emulationstation() {
-    local repo="$1"
-    local branch="$2"
-    [[ -z "$repo" ]] && repo="https://github.com/RetroPie/EmulationStation"
+function _get_branch_emulationstation() {
     if [[ -z "$branch" ]]; then
         if compareVersions "$__os_debian_ver" gt 8; then
             branch="stable"
@@ -147,7 +151,11 @@ function sources_emulationstation() {
             branch="v2.7.6"
         fi
     fi
-    gitPullOrClone "$md_build" "$repo" "$branch"
+    echo "$branch"
+}
+
+function sources_emulationstation() {
+    gitPullOrClone
 }
 
 function build_emulationstation() {
@@ -158,6 +166,9 @@ function build_emulationstation() {
         isPlatform "mesa" && params+=(-DGL=On)
         # force GLESv1 on videocore due to performance issue with GLESv2
         isPlatform "videocore" && params+=(-DUSE_GLES1=On)
+    elif isPlatform "x11"; then
+        local gl_ver=$(sudo -u $user glxinfo | grep -oP "OpenGL version string: \K(\d+)")
+        [[ "$gl_ver" -gt 1 ]] && params+=(-DUSE_OPENGL_21=On)
     fi
     rpSwap on 1000
     cmake . "${params[@]}"

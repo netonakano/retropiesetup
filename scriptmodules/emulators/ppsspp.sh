@@ -13,6 +13,7 @@ rp_module_id="ppsspp"
 rp_module_desc="PlayStation Portable emulator PPSSPP"
 rp_module_help="ROM Extensions: .iso .pbp .cso\n\nCopy your PlayStation Portable roms to $romdir/psp"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/hrydgard/ppsspp/master/LICENSE.TXT"
+rp_module_repo="git https://github.com/hrydgard/ppsspp.git v1.12.3"
 rp_module_section="opt"
 rp_module_flags=""
 
@@ -25,9 +26,7 @@ function depends_ppsspp() {
 }
 
 function sources_ppsspp() {
-    local branch="$1"
-    [[ -z "$branch" ]] && branch="master"
-    gitPullOrClone "$md_build/ppsspp" https://github.com/hrydgard/ppsspp.git "$branch"
+    gitPullOrClone "$md_build/ppsspp"
     cd "ppsspp"
 
     # remove the lines that trigger the ffmpeg build script functions - we will just use the variables from it
@@ -129,7 +128,7 @@ function build_ppsspp() {
     local params=()
     if isPlatform "videocore"; then
         if isPlatform "armv6"; then
-            params+=(-DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv6.cmake -DFORCED_CPU=armv6)
+            params+=(-DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv6.cmake -DFORCED_CPU=armv6 -DATOMIC_LIB=atomic)
         else
             params+=(-DCMAKE_TOOLCHAIN_FILE=cmake/Toolchains/raspberry.armv7.cmake)
         fi
@@ -177,6 +176,6 @@ function configure_ppsspp() {
     mkUserDir "$md_conf_root/psp/PSP"
     ln -snf "$romdir/psp" "$md_conf_root/psp/PSP/GAME"
 
-    addEmulator 0 "$md_id" "psp" "$md_inst/PPSSPPSDL ${extra_params[*]} %ROM%"
+    addEmulator 0 "$md_id" "psp" "pushd $md_inst; $md_inst/PPSSPPSDL ${extra_params[*]} %ROM%; popd"
     addSystem "psp"
 }

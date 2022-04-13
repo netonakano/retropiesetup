@@ -13,6 +13,7 @@ rp_module_id="advmame-1.4"
 rp_module_desc="AdvanceMAME v1.4"
 rp_module_help="ROM Extension: .zip\n\nCopy your AdvanceMAME roms to either $romdir/mame-advmame or\n$romdir/arcade"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/amadvance/advancemame/master/COPYING"
+rp_module_repo="file $__archive_url/advancemame-1.4.tar.gz"
 rp_module_section="opt"
 rp_module_flags="!mali !kms"
 
@@ -38,13 +39,15 @@ function _sources_patch_advmame-1.4() {
 
         # patch advmame to use a fake generated mode with the exact dimensions for fb - avoids need for configuring monitor / clocks.
         # the pi framebuffer doesn't use any of the framebuffer timing configs - it hardware scales from chosen dimensions to actual size
-        applyPatch "$scriptdir/scriptmodules/$md_type/advmame/01_rpi_framebuffer.diff"
+        applyPatch "${md_path%/*}/advmame/01_rpi_framebuffer.diff"
     fi
 }
 
 function sources_advmame-1.4() {
-    downloadAndExtract "$__archive_url/advancemame-1.4.tar.gz" "$md_build" --strip-components 1
+    downloadAndExtract "$md_repo_url" "$md_build" --strip-components 1
     _sources_patch_advmame-1.4 1.4
+    # Fix the global vars missing the 'external' qualifier, needed for gcc > 10
+    applyPatch "${md_path%/*}/advmame/02_fix_extern_globals_1_4.diff"
 }
 
 function build_advmame-1.4() {

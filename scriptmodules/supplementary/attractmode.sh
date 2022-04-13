@@ -12,6 +12,7 @@
 rp_module_id="attractmode"
 rp_module_desc="Attract Mode emulator frontend"
 rp_module_licence="GPL3 https://raw.githubusercontent.com/mickelson/attract/master/License.txt"
+rp_module_repo="git https://github.com/mickelson/attract master"
 rp_module_section="exp"
 rp_module_flags="!mali frontend"
 
@@ -127,9 +128,9 @@ function _add_rom_attractmode() {
 
 function depends_attractmode() {
     local depends=(
-        cmake libflac-dev libogg-dev libvorbis-dev libopenal-dev libfreetype6-dev
+        cmake libflac-dev libcurl4-openssl-dev libogg-dev libvorbis-dev libopenal-dev libfreetype6-dev
         libudev-dev libjpeg-dev libudev-dev libavutil-dev libavcodec-dev
-        libavformat-dev libavfilter-dev libswscale-dev libavresample-dev
+        libavformat-dev libavfilter-dev libswscale-dev libswresample-dev
         libfontconfig1-dev
     )
     isPlatform "videocore" && depends+=(libraspberrypi-dev)
@@ -139,8 +140,8 @@ function depends_attractmode() {
 }
 
 function sources_attractmode() {
+    gitPullOrClone "$md_build/attract"
     isPlatform "rpi" && gitPullOrClone "$md_build/sfml-pi" "https://github.com/mickelson/sfml-pi"
-    gitPullOrClone "$md_build/attract" "https://github.com/mickelson/attract"
 }
 
 function build_attractmode() {
@@ -207,10 +208,10 @@ LD_LIBRARY_PATH="$md_inst/sfml/lib" "$md_inst/bin/attract" "\$@"
 _EOF_
     chmod +x "/usr/bin/attract"
 
-    local idx
-    for idx in "${__mod_idx[@]}"; do
-        if rp_isInstalled "$idx" && [[ -n "${__mod_section[$idx]}" ]] && ! hasFlag "${__mod_flags[$idx]}" "frontend"; then
-            rp_callModule "$idx" configure
+    local id
+    for id in "${__mod_id[@]}"; do
+        if rp_isInstalled "$id" && [[ -n "${__mod_info[$id/section]}" ]] && ! hasFlag "${__mod_info[$id/flags]}" "frontend"; then
+            rp_callModule "$id" configure
         fi
     done
 }

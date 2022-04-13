@@ -12,18 +12,23 @@
 rp_module_id="skyscraper"
 rp_module_desc="Scraper for EmulationStation by Lars Muldjord"
 rp_module_licence="GPL3 https://raw.githubusercontent.com/muldjord/skyscraper/master/LICENSE"
+rp_module_repo="git https://github.com/muldjord/skyscraper :_get_branch_skyscraper"
 rp_module_section="opt"
 
+function _get_branch_skyscraper() {
+    download https://api.github.com/repos/muldjord/skyscraper/releases/latest - | grep -m 1 tag_name | cut -d\" -f4
+}
+
 function depends_skyscraper() {
-    getDepends qt5-default p7zip-full
+    getDepends qtbase5-dev qtchooser qt5-qmake qtbase5-dev-tools p7zip-full
 }
 
 function sources_skyscraper() {
-    gitPullOrClone "$md_build" "https://github.com/muldjord/skyscraper" "$(_latest_ver_skyscraper)"
+    gitPullOrClone
 }
 
 function build_skyscraper() {
-    qmake
+    QT_SELECT=5 qmake
     make
     md_ret_require="$md_build/Skyscraper"
 }
@@ -81,9 +86,9 @@ function _clear_platform_skyscraper() {
     [[ ! -d "$configdir/all/skyscraper/$cache_folder/$platform" ]] && return
 
     if [[ $mode == "vacuum" ]]; then
-        sudo -u "$user" stdbuf -o0 $md_inst/Skyscraper --unattend -p "$platform" --cache vacuum
+        sudo -u "$user" stdbuf -o0 $md_inst/Skyscraper --flags unattend -p "$platform" --cache vacuum
     else
-        sudo -u "$user" stdbuf -o0 $md_inst/Skyscraper --unattend -p "$platform" --cache purge:all
+        sudo -u "$user" stdbuf -o0 $md_inst/Skyscraper --flags unattend -p "$platform" --cache purge:all
     fi
     sleep 5
 }
@@ -126,8 +131,13 @@ function _get_ver_skyscraper() {
     fi
 }
 
-function _latest_ver_skyscraper() {
-    wget -qO- https://api.github.com/repos/muldjord/skyscraper/releases/latest | grep -m 1 tag_name | cut -d\" -f4
+function _check_ver_skyscraper() {
+    ver=$(_get_ver_skyscraper)
+    if compareVersions "$ver" lt "3.5" ]]; then
+        printMsgs "dialog" "The version of Skyscraper you currently have installed is incompatible with options used by this script. Please update Skyscraper to the latest version to continue."
+        return 1
+    fi
+    return 0
 }
 
 # List any non-empty systems found in the ROM folder
@@ -202,7 +212,7 @@ function _init_config_skyscraper() {
     # If we don't have a previous config.ini file, copy the example one
     [[ ! -f "$scraper_conf_dir/config.ini" ]] && cp "$md_inst/config.ini.example" "$scraper_conf_dir/config.ini"
 
-    # Try to find the rest of the necesary files from the qmake build file
+    # Try to find the rest of the necessary files from the qmake build file
     # They should be listed in the `unix:examples.file` configuration line
     if [[ $(grep unix:examples.files "$md_build/skyscraper.pro" 2>/dev/null | cut -d= -f2-) ]]; then
         local files=$(grep unix:examples.files "$md_build/skyscraper.pro" | cut -d= -f2-)
@@ -301,11 +311,8 @@ function _scrape_skyscraper() {
 
 # Scrape a list of systems, chosen by the user
 function _scrape_chosen_skyscraper() {
-    ver=$(_get_ver_skyscraper)
-    if compareVersions "$ver" lt "3.5" ]]; then
-        printMsgs "dialog" "The version of Skyscraper you currently have installed is incompatible with options used by this script. Please update Skyscraper to the latest version to continue."
-	return 1
-    fi
+    ! _check_ver_skyscraper && return 1
+
     local options=()
     local system
     local i=1
@@ -343,11 +350,8 @@ function _scrape_chosen_skyscraper() {
 
 # Generate gamelists for a list of systems, chosen by the user
 function _generate_chosen_skyscraper() {
-    ver=$(_get_ver_skyscraper)
-    if compareVersions "$ver" lt "3.5" ]]; then
-        printMsgs "dialog" "The version of Skyscraper you currently have installed is incompatible with options used by this script. Please update Skyscraper to the latest version to continue."
-	return 1
-    fi
+    ! _check_ver_skyscraper && return 1
+
     local options=()
     local system
     local i=1
@@ -508,7 +512,7 @@ function gui_skyscraper() {
         [5]="Options for EmulationStation game list generation sub-menu.\nClick to open it and change the options."
         [V]="Toggle the download and caching of videos.\nThis also toggles whether the videos will be included in the resulting gamelist.\n\nSkyscraper option: \Zb--flags videos\Zn"
         [A]="Advanced options sub-menu."
-        [U]="Check for an update to Skyscraper\nIf there is a new release, you'll have the option to update."
+        [U]="Check for an update to Skyscraper."
     )
 
     ver=$(_get_ver_skyscraper)
@@ -560,12 +564,7 @@ function gui_skyscraper() {
 
         options+=(A "Advanced options -->")
 
-        # Show different options, depending on the previous check action
-        if [[ -n "$latest_ver" ]] && compareVersions "$latest_ver" gt "$ver" ; then
-            options+=(U "Update to $latest_ver")
-        else 
-            options+=(U "Check for Updates")
-        fi
+        options+=(U "Check for Updates")
 
         # Run the GUI
         local choice=$("${cmd[@]}" "${options[@]}" 2>&1 >/dev/tty)
@@ -648,12 +647,12 @@ function gui_skyscraper() {
                     ;;
 
                 U)
-                    # Update to lastest release or check for update
-                    if [[ -n "$latest_ver" ]] && compareVersions "$latest_ver" gt "$ver" ; then
-                        rp_callModule "$md_id"
-                    else 
-                        latest_ver=$(_latest_ver_skyscraper)
-                        printMsgs "dialog" "Skyscraper latest released version is $latest_ver"
+                    local latest_ver="$(_get_branch_skyscraper)"
+                    # check for update
+                    if compareVersions "$latest_ver" gt "$ver" ; then
+                        printMsgs "dialog" "There is a new version available. Latest released version is $latest_ver (You are running $ver).\n\nYou can update the package from RetroPie-Setup -> Manage Packages"
+                    else
+                        printMsgs "dialog" "You are running the latest version ($ver)."
                     fi
                     ;;
 

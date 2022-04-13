@@ -12,6 +12,7 @@
 rp_module_id="retroarch"
 rp_module_desc="RetroArch - frontend to the libretro emulator cores - required by all lr-* emulators"
 rp_module_licence="GPL3 https://raw.githubusercontent.com/libretro/RetroArch/master/COPYING"
+rp_module_repo="git https://github.com/RetroPie/RetroArch.git retropie-v1.10.0"
 rp_module_section="core"
 
 function depends_retroarch() {
@@ -20,7 +21,7 @@ function depends_retroarch() {
     isPlatform "gles" && ! isPlatform "vero4k" && depends+=(libgles2-mesa-dev)
     isPlatform "mesa" && depends+=(libx11-xcb-dev)
     isPlatform "mali" && depends+=(mali-fbdev)
-    isPlatform "x11" && depends+=(libx11-xcb-dev libpulse-dev libvulkan-dev)
+    isPlatform "x11" && depends+=(libx11-xcb-dev libpulse-dev libvulkan-dev mesa-vulkan-drivers)
     isPlatform "vero4k" && depends+=(vero3-userland-dev-osmc zlib1g-dev libfreetype6-dev)
     isPlatform "kms" && depends+=(libgbm-dev)
 
@@ -28,24 +29,11 @@ function depends_retroarch() {
         depends+=(libavcodec-dev libavformat-dev libavdevice-dev)
     fi
 
-    # only install nvidia-cg-toolkit if it is available (as the non-free repo may not be enabled)
-    if isPlatform "x86"; then
-        if [[ -n "$(apt-cache search --names-only nvidia-cg-toolkit)" ]]; then
-            depends+=(nvidia-cg-toolkit)
-        fi
-    fi
-
     getDepends "${depends[@]}"
 }
 
 function sources_retroarch() {
-    gitPullOrClone "$md_build" https://github.com/libretro/RetroArch.git v1.8.8
-    applyPatch "$md_data/01_hotkey_hack.diff"
-    applyPatch "$md_data/02_disable_search.diff"
-    applyPatch "$md_data/03_shader_path_config_enable.diff"
-    # revert of https://github.com/libretro/RetroArch/pull/10524/commits/9eb84728
-    # see https://github.com/RetroPie/RetroPie-Setup/issues/3249
-    applyPatch "$md_data/04_config_save_fix.diff"
+    gitPullOrClone
 }
 
 function build_retroarch() {
@@ -58,7 +46,11 @@ function build_retroarch() {
         params+=(--disable-ffmpeg)
     fi
     isPlatform "gles" && params+=(--enable-opengles)
-    isPlatform "gles3" && params+=(--enable-opengles3)
+    if isPlatform "gles3"; then
+        params+=(--enable-opengles3)
+        isPlatform "gles31" && params+=(--enable-opengles3_1)
+        isPlatform "gles32" && params+=(--enable-opengles3_2)
+    fi
     isPlatform "rpi" && isPlatform "mesa" && params+=(--disable-videocore)
     # Temporarily block dispmanx support for fkms until upstream support is fixed
     isPlatform "dispmanx" && ! isPlatform "kms" && params+=(--enable-dispmanx --disable-opengl1)
@@ -96,8 +88,13 @@ function update_overlays_retroarch() {
     local dir="$configdir/all/retroarch/overlay"
     # remove if not a git repository for fresh checkout
     [[ ! -d "$dir/.git" ]] && rm -rf "$dir"
-    gitPullOrClone "$configdir/all/retroarch/overlay" https://github.com/libretro/common-overlays.git
+    gitPullOrClone "$dir" https://github.com/libretro/common-overlays.git
     chown -R $user:$user "$dir"
+}
+
+function update_joypad_autoconfigs_retroarch() {
+    gitPullOrClone "$md_build/autoconfigs" https://github.com/libretro/retroarch-joypad-autoconfig.git
+    cp -a "$md_build/autoconfigs/." "$md_inst/autoconfig-presets/"
 }
 
 function update_assets_retroarch() {
@@ -146,6 +143,9 @@ function configure_retroarch() {
     # install minimal assets
     install_minimal_assets_retroarch
 
+    # install joypad autoconfig presets
+    update_joypad_autoconfigs_retroarch
+
     local config="$(mktemp)"
 
     cp "$md_inst/retroarch.cfg" "$config"
@@ -162,6 +162,7 @@ function configure_retroarch() {
     iniSet "video_aspect_ratio_auto" "true"
     iniSet "rgui_show_start_screen" "false"
     iniSet "rgui_browser_directory" "$romdir"
+    iniSet "rgui_switch_icons" "false"
 
     if ! isPlatform "x86"; then
         iniSet "video_threaded" "true"

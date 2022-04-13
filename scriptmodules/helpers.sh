@@ -175,7 +175,7 @@ function hasPackage() {
 ## @brief Calls apt-get update (if it has not been called before).
 function aptUpdate() {
     if [[ "$__apt_update" != "1" ]]; then
-        apt-get update
+        apt-get update --allow-releaseinfo-change
         __apt_update="1"
     fi
 }
@@ -239,7 +239,11 @@ function _mapPackage() {
                 isPlatform "x11" && own_sdl2=0
                 iniConfig " = " '"' "$configdir/all/retropie.cfg"
                 iniGet "own_sdl2"
-                [[ "$ini_value" == "1" ]] && own_sdl2=1
+                if [[ "$ini_value" == "1" ]]; then
+                    own_sdl2=1
+                elif [[ "$ini_value" == "0" ]]; then
+                    own_sdl2=0
+                fi
                 [[ "$own_sdl2" -eq 1 ]] && pkg="RP sdl2 $pkg"
             fi
             ;;
@@ -385,27 +389,53 @@ function rpSwap() {
 ## A depth parameter of 0 will do a full clone with all history.
 function gitPullOrClone() {
     local dir="$1"
+    [[ -z "$dir" ]] && dir="$md_build"
     local repo="$2"
     local branch="$3"
-    [[ -z "$branch" ]] && branch="master"
     local commit="$4"
     local depth="$5"
-    if [[ -z "$depth" && "$__persistent_repos" -ne 1 && -z "$commit" ]]; then
-        depth=1
-    else
+    # if repo is blank then use the rp_module_repo info
+    if [[ -z "$repo" && -n "$md_repo_url" ]]; then
+        repo="$(rp_resolveRepoParam "$md_repo_url")"
+        branch="$(rp_resolveRepoParam "$md_repo_branch")"
+        commit="$(rp_resolveRepoParam "$md_repo_commit")"
+    fi
+    [[ -z "$repo" ]] && return 1
+    [[ -z "$branch" ]] && branch="master"
+
+    # if no depth is provided default to shallow clone (depth 1)
+    [[ -z "$depth" ]] && depth=1
+    # if we are using persistent repos or checking out a specific commit, don't shallow clone
+    if [[ "$__persistent_repos" -eq 1 || -n "$commit" ]]; then
         depth=0
+    fi
+
+    # record the source directory in __mod_info[ID/repo_dir] if not previously set which will be used
+    # by the packaging functions later to grab repository information
+    if [[ -z "${__mod_info[$md_id/repo_dir]}" ]]; then
+        __mod_info[$md_id/repo_dir]="$dir"
     fi
 
     if [[ -d "$dir/.git" ]]; then
         pushd "$dir" > /dev/null
+        # if we are using persistent repos, fetch the latest remote changes and clean the source so
+        # any patches can be re-applied as needed.
+        if [[ "$__persistent_repos" -eq 1 ]]; then
+            runCmd git fetch
+            runCmd git reset --hard
+            runCmd git clean -f -d
+        fi
         runCmd git checkout "$branch"
-        runCmd git pull
-        runCmd git submodule update --init --recursive
+        # only try to pull if we are on a tracking branch
+        if [[ -n "$(git config --get branch.$branch.merge)" ]]; then
+            runCmd git pull --ff-only
+            runCmd git submodule update --init --recursive
+        fi
         popd > /dev/null
     else
         local git="git clone --recursive"
         if [[ "$depth" -gt 0 ]]; then
-            git+=" --depth $depth"
+            git+=" --depth $depth --shallow-submodules"
         fi
         git+=" --branch $branch"
         printMsgs "console" "$git \"$repo\" \"$dir\""
@@ -441,8 +471,8 @@ function setupDirectories() {
 
     # make sure we have inifuncs.sh in place and that it is up to date
     mkdir -p "$rootdir/lib"
-    local helper_libs=(inifuncs.sh archivefuncs.sh)
-    for helper in "${helper_libs[@]}"; do
+    local helper
+    for helper in inifuncs.sh archivefuncs.sh; do
         if [[ ! -f "$rootdir/lib/$helper" || "$rootdir/lib/$helper" -ot "$scriptdir/scriptmodules/$helper" ]]; then
             cp --preserve=timestamps "$scriptdir/scriptmodules/$helper" "$rootdir/lib/$helper"
         fi
@@ -629,19 +659,61 @@ function addUdevInputRules() {
     rm -f /etc/udev/rules.d/99-evdev.rules
 }
 
+## @fn setBackend()
+## @param emulator.cfg key to configure backend for
+## @param backend name of the backend to set
+## @param force set to 1 to force the change
+## @brief Set a backend rendering driver for a module
+## @details Set a backend rendering driver for a module - can be currently default, dispmanx or x11.
+## This function will only set a backend if
+##   - It's not already configured, or
+##   - The 3rd parameter (force) is set to 1
+## The emulator.cfg key is usually the module_id but some modules add multiple emulator.cfg entries
+## which are all handled separately. A module can use a _backend_set_MODULE function hook which is called
+## from the backends module to handle calling setBackend for additional emulator.cfg entries.
+## See "fuse" scriptmodule for an example.
+function setBackend() {
+    local config="$configdir/all/backends.cfg"
+    local id="$1"
+    local mode="$2"
+    local force="$3"
+    iniConfig "=" "\"" "$config"
+    iniGet "$id"
+    if [[ "$force" -eq 1 || -z "$ini_value" ]]; then
+        iniSet "$id" "$mode"
+        chown $user:$user "$config"
+    fi
+}
+
+## @fn getBackend()
+## @param emulator.cfg key to get backend for
+## @brief Get a backend rendering driver for a module
+## @details Get a backend rendering driver for a module
+## The function echos the result so the value can be captured using var=$(getBackend "$module_id")
+function getBackend() {
+    local config="$configdir/all/backends.cfg"
+    local id="$1"
+    iniConfig " = " '"' "$config"
+    iniGet "$id"
+    if [[ -n "$ini_value" ]]; then
+        # translate old value of 1 as dispmanx for backward compatibility
+        [[ "$ini_value" == "1" ]] && ini_value="dispmanx"
+     else
+        ini_value="default"
+     fi
+     echo "$ini_value"
+}
+
 ## @fn setDispmanx()
 ## @param module_id name of module to add dispmanx flag for
 ## @param status initial status of flag (0 or 1)
-## @brief Sets a dispmanx flag for a module.
+## @brief Sets a dispmanx flag for a module. This function is deprecated.
 ## @details Set a dispmanx flag for a module as to whether it should use the
 ## sdl1 dispmanx backend by default or not (0 for framebuffer, 1 for dispmanx).
+## This function is deprecated and instead setBackend should be used.
 function setDispmanx() {
     isPlatform "dispmanx" || return
-    local mod_id="$1"
-    local status="$2"
-    iniConfig "=" "\"" "$configdir/all/dispmanx.cfg"
-    iniSet $mod_id "$status"
-    chown $user:$user "$configdir/all/dispmanx.cfg"
+    setBackend "$1" "dispmanx"
 }
 
 ## @fn iniFileEditor()
@@ -870,6 +942,9 @@ function setESSystem() {
 ## @param shader set a default shader to use (deprecated)
 ## @brief Creates a default retroarch.cfg for specified system in `/opt/retropie/configs/$system/retroarch.cfg`.
 function ensureSystemretroconfig() {
+    # don't do any config work on module removal
+    [[ "$md_mode" == "remove" ]] && return
+
     local system="$1"
     local shader="$2"
 
@@ -985,44 +1060,90 @@ function applyPatch() {
     return 0
 }
 
-## @fn download()
-## @param url url of file
-## @param dest destination name (optional)
-## @brief Download a file
-## @details Download a file - if the dest parameter is ommitted, the file will be downloaded to the current directory
-## @retval 0 on success
-function download() {
-    local url="$1"
-    local dest="$2"
+## @fn runCurl()
+## @params ... commandline arguments to pass to curl
+## @brief Run curl with chosen parameters and handle curl errors
+## @details Runs curl with the provided parameters, whilst also capturing the output and extracting
+## any error message, which is stored in the global variable __NET_ERRMSG. Function returns the return
+## code provided by curl. The environment variable __curl_opts can be set to override default curl
+## parameters, eg - timeouts etc.
+## @retval curl return value
+function runCurl() {
+    local params=("$@")
+    # add any user supplied curl opts - timeouts can be overridden as curl uses the last parameters given
+    [[ -n "$__curl_opts" ]] && params+=($__curl_opts)
 
-    # if no destination, get the basename from the url (supported by GNU basename)
-    [[ -z "$dest" ]] && dest="${PWD}/$(basename "$url")"
+    local cmd_err
+    local ret
+
+    # get the last non zero exit status (ignoring tee)
+    set -o pipefail
 
     # set up additional file descriptor for stdin
     exec 3>&1
 
-    local cmd_err
-    local ret
-    # get the last non zero exit status (ignoring tee)
-    set -o pipefail
-    printMsgs "console" "Downloading $url ..."
     # capture stderr - while passing both stdout and stderr to terminal
-    # wget by default outputs the progress to stderr - if we force it to log to stdout, we get no useful error msgs
-    # however this code will be useful when switching away from wget to curl. For now it's best left with -nv
-    # no progress, but less log spam, and output can be useful on failure
-    cmd_err=$(wget -nv -O"$dest" "$url" 2>&1 1>&3 | tee /dev/stderr)
+    # curl like wget outputs the progress meter to stderr, so we will extract the error line later
+    cmd_err=$(curl "${params[@]}" 2>&1 1>&3 | tee /dev/stderr)
     ret="$?"
-    set +o pipefail
+
     # remove stdin copy
     exec 3>&-
 
+    set +o pipefail
+
+    # if there was an error, extract it and put in __NET_ERRMSG
+    if [[ "$ret" -ne 0 ]]; then
+        # as we also capture the curl progress output, extract the last line which contains the error
+        __NET_ERRMSG="${cmd_err##*$'\n'}"
+    else
+        __NET_ERRMSG=""
+    fi
+    return "$ret"
+}
+
+## @fn download()
+## @param url url of file
+## @param dest destination name (optional), use - for stdout
+## @brief Download a file
+## @details Download a file - if the dest parameter is omitted, the file will be downloaded to the current directory.
+## If the destination name is a hyphen (-), then the file will be outputted to stdout, for piping to another command
+## or retrieving the contents directly to a variable. If the destination is a folder, extract with the basename from
+## the url to the destination folder.
+## @retval 0 on success
+function download() {
+    local url="$1"
+    local dest="$2"
+    local file="${url##*/}"
+
+    # if no destination, get the basename from the url
+    [[ -z "$dest" ]] && dest="${PWD}/$file"
+
+    # if the destination is a folder, download to that with filename from url
+    [[ -d "$dest" ]] && dest="$dest/$file"
+
+    local params=(--location)
+    if [[ "$dest" == "-" ]]; then
+        params+=(--silent --no-buffer)
+    else
+        printMsgs "console" "Downloading $url to $dest ..."
+        params+=(-o "$dest")
+    fi
+    params+=(--connect-timeout 10 --speed-limit 1 --speed-time 60 --fail)
+    # add the url
+    params+=("$url")
+
+    local ret
+    runCurl "${params[@]}"
+    ret="$?"
+
     # if download failed, remove file, log error and return error code
     if [[ "$ret" -ne 0 ]]; then
-        rm "$dest"
-        md_ret_errors+=("URL $url failed to download.\n\n$cmd_err")
-        return "$ret"
+        # remove dest if not set to stdout and exists
+        [[ "$dest" != "-" && -f "$dest" ]] && rm "$dest"
+        md_ret_errors+=("URL $url failed to download.\n\n$__NET_ERRMSG")
     fi
-    return 0
+    return "$ret"
 }
 
 ## @fn downloadAndVerify()
@@ -1036,9 +1157,10 @@ function download() {
 function downloadAndVerify() {
     local url="$1"
     local dest="$2"
+    local file="${url##*/}"
 
     # if no destination, get the basename from the url (supported by GNU basename)
-    [[ -z "$dest" ]] && dest="${PWD}/$(basename "$url")"
+    [[ -z "$dest" ]] && dest="${PWD}/$file"
 
     local cmd_out
     local ret=1
@@ -1068,37 +1190,29 @@ function downloadAndExtract() {
     local opts=("$@")
 
     local ext="${url##*.}"
-    local cmd=(tar -xv)
-    local is_tar=1
+    local file="${url##*/}"
+
+    local temp="$(mktemp -d)"
+    # download file, removing temporary folder and returning on error
+    if ! download "$url" "$temp/$file"; then
+        rm -rf "$temp"
+        return 1
+    fi
+
+    mkdir -p "$dest"
 
     local ret
     case "$ext" in
-        gz|tgz)
-            cmd+=(-z)
-            ;;
-        bz2)
-            cmd+=(-j)
-            ;;
-        xz)
-            cmd+=(-J)
-            ;;
         exe|zip)
-            is_tar=0
-            local tmp="$(mktemp -d)"
-            local file="${url##*/}"
-            runCmd wget -q -O"$tmp/$file" "$url"
-            runCmd unzip "${opts[@]}" -o "$tmp/$file" -d "$dest"
-            rm -rf "$tmp"
-            ret=$?
+            runCmd unzip "${opts[@]}" -o "$temp/$file" -d "$dest"
+            ;;
+        *)
+            tar -xvf "$temp/$file" -C "$dest" "${opts[@]}"
+            ;;
     esac
+    ret=$?
 
-    if [[ "$is_tar" -eq 1 ]]; then
-        mkdir -p "$dest"
-        cmd+=(-C "$dest" "${opts[@]}")
-
-        runCmd "${cmd[@]}" < <(wget -q -O- "$url")
-        ret=$?
-    fi
+    rm -rf "$temp"
 
     return $ret
 }
@@ -1137,7 +1251,7 @@ _EOF_
 ## @param but2 mapping for button 2
 ## @param but3 mapping for button 3
 ## @param butX mapping for button X ...
-## @brief Start joy2key.py process in background to map joystick presses to keyboard
+## @brief Start joy2key process in background to map joystick presses to keyboard
 ## @details Arguments are curses capability names or hex values starting with '0x'
 ## see: http://pubs.opengroup.org/onlinepubs/7908799/xcurses/terminfo.html
 function joy2keyStart() {
@@ -1146,32 +1260,21 @@ function joy2keyStart() {
     [[ "$(who -m)" == *\(* ]] && return
 
     local params=("$@")
-    if [[ "${#params[@]}" -eq 0 ]]; then
-        params=(kcub1 kcuf1 kcuu1 kcud1 0x0a 0x20 0x1b)
-    fi
 
-    # get the first joystick device (if not already set)
-    [[ -c "$__joy2key_dev" ]] || __joy2key_dev="/dev/input/jsX"
-
-    # if no joystick device, or joy2key is already running exit
-    [[ -z "$__joy2key_dev" ]] || pgrep -f joy2key.py >/dev/null && return 1
-
-    # if joy2key.py is installed run it with cursor keys for axis/dpad, and enter + space for buttons 0 and 1
-    if "$scriptdir/scriptmodules/supplementary/runcommand/joy2key.py" "$__joy2key_dev" "${params[@]}" 2>/dev/null; then
-        __joy2key_pid=$(pgrep -f joy2key.py)
-        return 0
+    # if joy2key is installed, run it
+    if rp_isInstalled "joy2key"; then
+        "$(rp_getInstallPath joy2key)/joy2key" start "${params[@]}" 2>/dev/null && return 0
     fi
 
     return 1
 }
 
 ## @fn joy2keyStop()
-## @brief Stop previously started joy2key.py process.
+## @brief Stop previously started joy2key process.
 function joy2keyStop() {
-    if [[ -n $__joy2key_pid ]]; then
-        kill $__joy2key_pid 2>/dev/null
-        __joy2key_pid=""
-        sleep 1
+    # if joy2key is installed, stop it
+    if rp_isInstalled "joy2key"; then
+        "$(rp_getInstallPath joy2key)/joy2key" stop
     fi
 }
 
@@ -1449,13 +1552,19 @@ function dkmsManager() {
             if dkms status | grep -q "^$module_name"; then
                 dkmsManager remove "$module_name" "$module_ver"
             fi
-            if [[ "$__chroot" -eq 1 ]]; then
-                kernel="$(ls -1 /lib/modules | tail -n -1)"
-            fi
             ln -sf "$md_inst" "/usr/src/${module_name}-${module_ver}"
-            dkms install --force -m "$module_name" -v "$module_ver" -k "$kernel"
-            if dkms status | grep -q "^$module_name"; then
-                md_ret_error+=("Failed to install $md_id")
+            dkms install --no-initrd --force -m "$module_name" -v "$module_ver" -k "$kernel"
+            if ! dkms status "$module_name/$module_ver" -k "$kernel" | grep -q installed; then
+                # Force building for any kernel that has source/headers
+                local k_ver
+                while read k_ver; do
+                    if [[ -d "$(realpath /lib/modules/$k_ver/build)" ]]; then
+                        dkms install --no-initrd --force -m "$module_name/$module_ver" -k "$k_ver"
+                    fi
+                done < <(ls -r1 /lib/modules)
+            fi
+            if ! dkms status "$module_name/$module_ver" | grep -q installed; then
+                md_ret_errors+=("Failed to install $md_id")
                 return 1
             fi
             ;;
@@ -1501,6 +1610,21 @@ function getIPAddress() {
 
     # if an external route was found, report its source address
     [[ -n "$ip_route" ]] && grep -oP "src \K[^\s]+" <<< "$ip_route"
+}
+
+## @fn isConnected()
+## @brief Simple check to see if there is a connection to the Internet.
+## @details Uses the getIPAddress function to check if we have a route to the Internet. Also sets
+## __NET_ERRMSG with an error message for use in packages / setup to display to the user if not.
+## @retval 0 on success
+## @retval 1 on failure
+function isConnected() {
+    local ip="$(getIPAddress)"
+    if [[ -z "$ip" ]]; then
+        __NET_ERRMSG="Not connected to the Internet"
+        return 1
+    fi
+    return 0
 }
 
 ## @fn adminRsync()

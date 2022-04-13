@@ -12,10 +12,11 @@
 rp_module_id="retropiemenu"
 rp_module_desc="RetroPie configuration menu for EmulationStation"
 rp_module_section="core"
+rp_module_flags="nonet"
 
 function _update_hook_retropiemenu() {
     # to show as installed when upgrading to retropie-setup 4.x
-    if ! rp_isInstalled "$md_idx" && [[ -f "$home/.emulationstation/gamelists/retropie/gamelist.xml" ]]; then
+    if ! rp_isInstalled "$md_id" && [[ -f "$home/.emulationstation/gamelists/retropie/gamelist.xml" ]]; then
         mkdir -p "$md_inst"
         # to stop older scripts removing when launching from retropie menu in ES due to not using exec or exiting after running retropie-setup from this module
         touch "$md_inst/.retropie"
@@ -137,7 +138,7 @@ function launch_retropiemenu() {
             joy2keyStop
             cp "$configdir/all/retroarch.cfg" "$configdir/all/retroarch.cfg.bak"
             chown $user:$user "$configdir/all/retroarch.cfg.bak"
-            su $user -c "\"$emudir/retroarch/bin/retroarch\" --menu --config \"$configdir/all/retroarch.cfg\""
+            su $user -c "XDG_RUNTIME_DIR=/run/user/$SUDO_UID \"$emudir/retroarch/bin/retroarch\" --menu --config \"$configdir/all/retroarch.cfg\""
             iniConfig " = " '"' "$configdir/all/retroarch.cfg"
             iniSet "config_save_on_exit" "false"
             ;;

@@ -18,7 +18,7 @@ function _get_ver_usbromservice() {
 }
 
 function _update_hook_usbromservice() {
-    ! rp_isInstalled "$md_idx" && return
+    ! rp_isInstalled "$md_id" && return
     [[ ! -f "$md_inst/disabled" ]] && install_scripts_usbromservice
 }
 
@@ -86,7 +86,7 @@ function configure_usbromservice() {
     # set our mount options (usbmount has sync by default which we don't want)
     iniSet "MOUNTOPTIONS" "nodev,noexec,noatime"
 
-    # set per filesytem mount options
+    # set per filesystem mount options
     local options="uid=$(id -u $user),gid=$(id -g $user)"
     local fs_options
     local fs

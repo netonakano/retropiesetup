@@ -13,6 +13,7 @@ rp_module_id="lr-ppsspp"
 rp_module_desc="PlayStation Portable emu - PPSSPP port for libretro"
 rp_module_help="ROM Extensions: .iso .pbp .cso\n\nCopy your PlayStation Portable roms to $romdir/psp"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/RetroPie/ppsspp/master/LICENSE.TXT"
+rp_module_repo="git https://github.com/hrydgard/ppsspp.git v1.12.3"
 rp_module_section="opt"
 rp_module_flags=""
 
@@ -43,6 +44,11 @@ function configure_lr-ppsspp() {
         mkUserDir "$biosdir/PPSSPP"
         cp -Rv "$md_inst/assets/"* "$biosdir/PPSSPP/"
         chown -R $user:$user "$biosdir/PPSSPP"
+
+        # the core needs a save file directory, use the same folder as standalone 'ppsspp'
+        iniConfig " = " "" "$configdir/psp/retroarch.cfg"
+        iniSet "savefile_directory" "$home/.config/ppsspp"
+        mkUserDir "$home/.config/ppsspp"
     fi
 
     addEmulator 1 "$md_id" "psp" "$md_inst/ppsspp_libretro.so"

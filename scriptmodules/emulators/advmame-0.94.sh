@@ -13,6 +13,7 @@ rp_module_id="advmame-0.94"
 rp_module_desc="AdvanceMAME v0.94.0"
 rp_module_help="ROM Extension: .zip\n\nCopy your AdvanceMAME roms to either $romdir/mame-advmame or\n$romdir/arcade"
 rp_module_licence="GPL2 https://raw.githubusercontent.com/amadvance/advancemame/master/COPYING"
+rp_module_repo="file $__archive_url/advancemame-0.94.0.tar.gz"
 rp_module_section="opt"
 rp_module_flags="!mali !kms"
 
@@ -22,8 +23,10 @@ function depends_advmame-0.94() {
 }
 
 function sources_advmame-0.94() {
-    downloadAndExtract "$__archive_url/advancemame-0.94.0.tar.gz" "$md_build" --strip-components 1
+    downloadAndExtract "$md_repo_url" "$md_build" --strip-components 1
     _sources_patch_advmame-1.4
+    # Fix the global vars missing the 'external' qualifier, needed for gcc > 10
+    applyPatch "${md_path%/*}/advmame/02_fix_extern_globals_0_94.diff"
 }
 
 function build_advmame-0.94() {
