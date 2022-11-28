@@ -32,8 +32,18 @@ function build_lr-picodrive() {
     elif isPlatform "aarch64"; then
         params+=(use_sh2drc=0)
     fi
+    
+    if isPlatform "64bit"; then
+        rpSwap on 2048
+    else
+        rpSwap on 750
+    fi
+
     make clean
     make -f Makefile.libretro "${params[@]}"
+
+    rpSwap off
+
     md_ret_require="$md_build/picodrive_libretro.so"
 }
 
