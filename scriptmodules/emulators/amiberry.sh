@@ -13,12 +13,13 @@ rp_module_id="amiberry"
 rp_module_desc="Amiga emulator with JIT support (forked from uae4arm)"
 rp_module_help="ROM Extension: .adf .chd .ipf .lha .zip\n\nCopy your Amiga games to $romdir/amiga\n\nCopy the required BIOS files\nkick13.rom\nkick20.rom\nkick31.rom\nto $biosdir/amiga"
 rp_module_licence="GPL3 https://raw.githubusercontent.com/BlitterStudio/amiberry/master/LICENSE"
-rp_module_repo="git https://github.com/BlitterStudio/amiberry v5.3"
+rp_module_repo="git https://github.com/BlitterStudio/amiberry v5.4"
 rp_module_section="opt"
 rp_module_flags="!all arm rpi3 rpi4"
 
 function _update_hook_amiberry() {
     local rom
+    mkUserDir "$biosdir/amiga"
     for rom in kick13.rom kick20.rom kick31.rom; do
         # if we have a kickstart rom in $biosdir, move it to $biosdir/amiga and symlink the old location
         if [[ -f "$biosdir/$rom" && ! -h "$biosdir/$rom" ]]; then

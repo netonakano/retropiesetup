@@ -170,7 +170,7 @@ function get_os_version() {
 
     local error=""
     case "$__os_id" in
-        Raspbian|Debian)
+        Raspbian|Debian|Bunsenlabs)
             # get major version (8 instead of 8.0 etc)
             __os_debian_ver="${__os_release%%.*}"
 
@@ -413,6 +413,9 @@ function get_platform() {
                         *radxa,zero*)
                             __platform="radxa-zero"
                             ;;
+                        *rockpro64*)
+                            __platform="rockpro64"
+                            ;;
                     esac
                 elif [[ -e "/sys/devices/soc0/family" ]]; then
                     case "$(tr -d '\0' < /sys/devices/soc0/family)" in
@@ -516,6 +519,11 @@ function platform_rpi2() {
     __platform_flags+=(rpi gles)
 }
 
+function platform_rockpro64() {
+    cpu_armv8 "cortex-a53"
+    __platform_flags+=(gles kms)
+}
+
 function platform_rpi3() {
     cpu_armv8 "cortex-a53"
     __platform_flags+=(rpi gles)
@@ -562,12 +570,12 @@ function platform_radxa-zero() {
 }
 
 function platform_tegra-x1() {
-    cpu_armv8 "cortex-a57"
+    cpu_armv8 "cortex-a57+crypto"
     __platform_flags+=(x11 gl)
 }
 
 function platform_tegra-x2() {
-    cpu_armv8 "native"
+    cpu_armv8 "cortex-a57+crypto"
     __platform_flags+=(x11 gl)
 }
 
